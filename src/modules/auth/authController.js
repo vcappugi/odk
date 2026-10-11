@@ -4,6 +4,7 @@
  */
 import { authModel } from './authModel.js';
 import { notificationService } from '../../services/notificationService.js';
+import { adminController } from '../admin/adminController.js';
 import { $, $$ } from '../../utils/dom.js';
 
 export const authController = {
@@ -270,6 +271,11 @@ export const authController = {
           </button>
         </div>
       `;
+    }
+
+    // Actualizar visibilidad de botón Configuración (solo para rol admin en user_roles)
+    if (adminController && typeof adminController.updateVisibility === 'function') {
+      adminController.updateVisibility();
     }
   }
 };

@@ -27,6 +27,8 @@ import { calendarController } from './modules/calendar/calendarController.js';
 import { renderQuickActionsBar } from './modules/quickActions/quickActionsView.js';
 import { quickActionsController } from './modules/quickActions/quickActionsController.js';
 import { patientController } from './modules/patients/patientController.js';
+import { renderAdminConfigModal } from './modules/admin/adminView.js';
+import { adminController } from './modules/admin/adminController.js';
 
 /**
  * Inicialización de la aplicación
@@ -57,6 +59,9 @@ async function bootstrapApp() {
 
   // 8. Inicializar controlador de gestión de pacientes (CRUD completo)
   patientController.init();
+
+  // 9. Inicializar controlador de configuración administrativa (user_roles)
+  adminController.init();
 
   console.log('✅ ODONTOKRIS inicializado con éxito.');
 }
@@ -204,6 +209,9 @@ function mountAppLayout() {
 
     <!-- Modal Dialog para Autenticación (Login / Auto-Registro) -->
     ${renderAuthModal()}
+
+    <!-- Modal Dialog para Configuración Administrativa (Admin en user_roles) -->
+    ${renderAdminConfigModal()}
   `;
 }
 

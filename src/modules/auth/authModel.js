@@ -24,8 +24,9 @@ export const authModel = {
 
   /**
    * Guarda la sesión del usuario (sin almacenar la clave)
+   * Incluye el indicador isAdmin verificado en user_roles
    */
-  saveSession(user) {
+  saveSession(user, isAdmin = null) {
     if (!user) return;
     const sessionData = {
       id: user.id,
@@ -34,6 +35,7 @@ export const authModel = {
       telefono: user.telefono || '',
       ci: user.ci || '',
       rol: user.rol || 'usuario',
+      isAdmin: isAdmin !== null ? Boolean(isAdmin) : Boolean(user.rol === 'admin' || user.isAdmin === true),
       activo: user.activo ?? true,
       logged_at: new Date().toISOString()
     };
@@ -179,7 +181,24 @@ export const authModel = {
         throw new Error('Contraseña incorrecta.');
       }
 
-      return this.saveSession(user);
+      // Verificar rol admin en la tabla user_roles
+      let isAdmin = false;
+      try {
+        const { data: userRoles } = await supabase
+          .from('user_roles')
+          .select('id, role_id, activo, roles ( id, nombre, tipo, activo )')
+          .eq('user_id', user.id)
+          .eq('activo', true);
+
+        isAdmin = (userRoles || []).some(ur => {
+          const rName = ur.roles?.nombre?.toLowerCase() || ur.roles?.tipo?.toLowerCase();
+          return rName === 'admin' || ur.role_id === 1;
+        }) || user.rol === 'admin';
+      } catch (err) {
+        isAdmin = user.rol === 'admin';
+      }
+
+      return this.saveSession(user, isAdmin);
     }
 
     // Modo local / demo

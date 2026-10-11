@@ -39,6 +39,13 @@ export function renderQuickActionsBar() {
             <span class="quick-btn-icon">📊</span>
             <span class="quick-btn-text">Reportes</span>
           </button>
+
+          <!-- 5. Configuración (Solo Visible para Rol 'admin' en user_roles) -->
+          <button type="button" id="btn-quick-config" class="button btn-quick-action btn-config-action" data-size="sm" title="Panel de Configuración Administrativa (Solo Administradores)" style="display: none;">
+            <span class="quick-btn-icon">⚙️</span>
+            <span class="quick-btn-text">Configuración</span>
+            <span class="admin-shield-badge">Admin</span>
+          </button>
         </div>
 
       </div>
