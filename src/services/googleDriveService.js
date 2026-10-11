@@ -4,6 +4,8 @@
  * el formateo de URLs de Google Drive para recuperación y visualización directa.
  */
 
+import { env } from '../config/env.js';
+
 export const GOOGLE_DRIVE_CONFIG = {
   FOLDER_ID: '13kU4_JR4ehQxVc-IQfRMLUOFR57MHt3J',
   FOLDER_URL: 'https://drive.google.com/drive/folders/13kU4_JR4ehQxVc-IQfRMLUOFR57MHt3J',
@@ -13,18 +15,33 @@ export const GOOGLE_DRIVE_CONFIG = {
 export const googleDriveService = {
   /**
    * Obtiene la URL del Webhook de Google Apps Script configurada
+   * Lee desde localStorage (si fue personalizado) o desde variables de entorno (Vercel / Vite / .env)
    */
   getWebhookUrl() {
-    const envUrl = import.meta.env?.VITE_GOOGLE_SCRIPT_DRIVE_URL || '';
-    if (envUrl && envUrl.trim() !== '') {
-      return envUrl.trim();
-    }
+    // 1. Verificar si el usuario guardó una URL personalizada en localStorage
     try {
       const stored = localStorage.getItem(GOOGLE_DRIVE_CONFIG.LOCAL_STORAGE_KEY);
-      return stored ? stored.trim() : '';
+      if (stored && stored.trim() !== '') {
+        return stored.trim();
+      }
     } catch {
-      return '';
+      // Ignorar error de acceso a localStorage
     }
+
+    // 2. Verificar si está configurado en las variables de entorno de Vercel / Vite
+    const envUrl = (env.googleScriptDriveUrl || '').trim();
+    if (envUrl) {
+      return envUrl;
+    }
+
+    return '';
+  },
+
+  /**
+   * Indica si el webhook proviene de una variable de entorno de Vercel / Vite
+   */
+  isConfiguredViaEnv() {
+    return Boolean(env.googleScriptDriveUrl && env.googleScriptDriveUrl.trim());
   },
 
   /**

@@ -296,6 +296,9 @@ export function renderPatientManagementModals() {
             <small style="opacity: 0.75; font-size: 0.75rem; margin-top: 3px; display: block;">
               ⚠️ <strong>Importante:</strong> La URL debe terminar en <code>/exec</code> (NO ingreses el enlace de la carpeta de Drive).
             </small>
+            <small style="color: #0284c7; font-size: 0.75rem; margin-top: 2px; display: block;">
+              💡 <em>En Vercel:</em> Puedes configurar la variable <code>VITE_GOOGLE_SCRIPT_DRIVE_URL</code> en los Environment Variables de Vercel para conectarlo globalmente.
+            </small>
           </div>
 
           <!-- Mensaje de feedback de la prueba de conexión -->
