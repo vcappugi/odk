@@ -4,6 +4,7 @@
  * la creación y listado de consultorios, doctores y la gestión de usuarios.
  */
 
+import bcrypt from 'bcryptjs';
 import { getSupabase, getConnectionStatus } from '../../services/supabaseClient.js';
 import { authModel } from '../auth/authModel.js';
 
@@ -314,6 +315,194 @@ export const adminModel = {
         .eq('id', userId);
     } catch (err) {
       console.warn('[AdminModel] Aviso actualizando rol en usuario:', err);
+    }
+
+    return true;
+  },
+
+  /**
+   * Obtiene un usuario específico por su ID
+   * @param {number} userId
+   */
+  async getUserById(userId) {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+      .from('usuario')
+      .select('id, nombre, mail, ci, telefono, activo, rol, created_at')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      console.error(`[AdminModel] Error obteniendo usuario ${userId}:`, error);
+      throw error;
+    }
+
+    return data;
+  },
+
+  /**
+   * Registra un nuevo usuario en la tabla 'usuario'
+   * @param {Object} userData
+   */
+  async createUser({ nombre, mail, clave, ci, telefono, rol = 'usuario', activo = true }) {
+    const supabase = getSupabase();
+    if (!supabase) throw new Error('Cliente Supabase no disponible.');
+
+    if (!nombre || !mail || !clave) {
+      throw new Error('Nombre, correo electrónico y contraseña son campos obligatorios.');
+    }
+
+    const cleanMail = mail.toLowerCase().trim();
+    const cleanCi = ci?.trim() || null;
+
+    // 1. Verificar si ya existe usuario con ese correo o cédula
+    let checkQuery = supabase.from('usuario').select('id, mail, ci');
+    if (cleanCi) {
+      checkQuery = checkQuery.or(`mail.eq.${cleanMail},ci.eq.${cleanCi}`);
+    } else {
+      checkQuery = checkQuery.eq('mail', cleanMail);
+    }
+
+    const { data: existing, error: checkError } = await checkQuery;
+    if (checkError) {
+      console.warn('[AdminModel] Aviso comprobando duplicados:', checkError);
+    }
+
+    if (existing && existing.length > 0) {
+      const match = existing[0];
+      if (match.mail.toLowerCase() === cleanMail) {
+        throw new Error(`Ya existe una cuenta registrada con el correo "${cleanMail}".`);
+      }
+      if (cleanCi && match.ci === cleanCi) {
+        throw new Error(`Ya existe una cuenta registrada con la cédula "${cleanCi}".`);
+      }
+    }
+
+    // 2. Hashear la contraseña con bcrypt
+    const salt = bcrypt.genSaltSync(10);
+    const hashedClave = bcrypt.hashSync(clave.trim(), salt);
+
+    // 3. Insertar usuario en la tabla 'usuario'
+    const { data, error } = await supabase
+      .from('usuario')
+      .insert([{
+        nombre: nombre.trim(),
+        mail: cleanMail,
+        clave: hashedClave,
+        ci: cleanCi,
+        telefono: telefono?.trim() || null,
+        rol: rol || 'usuario',
+        activo: Boolean(activo)
+      }])
+      .select();
+
+    if (error) {
+      console.error('[AdminModel] Error creando usuario:', error);
+      throw new Error(`Error creando usuario: ${error.message}`);
+    }
+
+    const newUser = data?.[0];
+
+    // 4. Si el rol es 'admin', asignar en 'user_roles'
+    if (newUser?.id && rol === 'admin') {
+      try {
+        await this.setAdminRole(newUser.id, true);
+      } catch (rErr) {
+        console.warn('[AdminModel] Error asignando admin role a nuevo usuario:', rErr);
+      }
+    }
+
+    return newUser;
+  },
+
+  /**
+   * Modifica un usuario existente
+   * @param {number} userId
+   * @param {Object} userData
+   */
+  async updateUser(userId, { nombre, mail, clave, ci, telefono, rol = 'usuario', activo = true }) {
+    const supabase = getSupabase();
+    if (!supabase) throw new Error('Cliente Supabase no disponible.');
+
+    if (!nombre || !mail) {
+      throw new Error('Nombre y correo electrónico son obligatorios.');
+    }
+
+    const cleanMail = mail.toLowerCase().trim();
+    const cleanCi = ci?.trim() || null;
+
+    // 1. Preparar campos para actualizar
+    const payload = {
+      nombre: nombre.trim(),
+      mail: cleanMail,
+      ci: cleanCi,
+      telefono: telefono?.trim() || null,
+      rol: rol || 'usuario',
+      activo: Boolean(activo)
+    };
+
+    // Si se especificó una nueva contraseña, encriptarla
+    if (clave && clave.trim().length > 0) {
+      const salt = bcrypt.genSaltSync(10);
+      payload.clave = bcrypt.hashSync(clave.trim(), salt);
+    }
+
+    const { data, error } = await supabase
+      .from('usuario')
+      .update(payload)
+      .eq('id', userId)
+      .select();
+
+    if (error) {
+      console.error(`[AdminModel] Error actualizando usuario ${userId}:`, error);
+      throw new Error(`Error actualizando usuario: ${error.message}`);
+    }
+
+    // 2. Sincronizar en la tabla 'user_roles'
+    try {
+      await this.setAdminRole(userId, rol === 'admin');
+    } catch (rErr) {
+      console.warn('[AdminModel] Error sincronizando rol en user_roles:', rErr);
+    }
+
+    return data?.[0];
+  },
+
+  /**
+   * Elimina un usuario por su ID
+   * @param {number} userId
+   */
+  async deleteUser(userId) {
+    const supabase = getSupabase();
+    if (!supabase) throw new Error('Cliente Supabase no disponible.');
+
+    // Prevenir auto-eliminación de la cuenta en sesión activa
+    const currentUser = authModel.getCurrentUser();
+    if (currentUser && Number(currentUser.id) === Number(userId)) {
+      throw new Error('No puedes eliminar tu propia cuenta mientras estés en sesión activa.');
+    }
+
+    // 1. Eliminar asignaciones en user_roles
+    try {
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId);
+    } catch (rErr) {
+      console.warn('[AdminModel] Aviso eliminando en user_roles:', rErr);
+    }
+
+    // 2. Eliminar de la tabla 'usuario'
+    const { error } = await supabase
+      .from('usuario')
+      .delete()
+      .eq('id', userId);
+
+    if (error) {
+      console.error(`[AdminModel] Error eliminando usuario ${userId}:`, error);
+      throw new Error(`Error eliminando usuario: ${error.message}`);
     }
 
     return true;

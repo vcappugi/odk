@@ -198,16 +198,109 @@ export function renderAdminConfigModal() {
             </div>
           </section>
 
-          <!-- 4. VISTA: GESTIÓN DE USUARIOS Y PERMISOS (USER_ROLES) -->
+          <!-- 4. VISTA: GESTIÓN DE USUARIOS Y PERMISOS (CRUD COMPLETO TABLA USUARIO) -->
           <section id="admin-section-users" class="admin-section stack" data-gap="md" style="display: none;">
             <div class="cluster" data-justify="between" data-align="center">
               <div>
-                <h4 style="margin: 0; font-size: 1rem;">👥🔑 Gestión de Usuarios y Permisos</h4>
-                <small style="opacity: 0.75;">Control de accesos y asignación de rol 'admin' en la tabla user_roles</small>
+                <h4 style="margin: 0; font-size: 1rem;">👥🔑 Gestión de Cuentas de Usuario</h4>
+                <small style="opacity: 0.75;">Crear, modificar, dar de baja y asignar roles a los usuarios del sistema</small>
               </div>
-              <button type="button" class="button btn-admin-back-hub" data-variant="ghost" data-size="sm">
-                ◀ Volver al Menú
-              </button>
+              <div class="cluster" data-gap="xs">
+                <button type="button" id="btn-admin-scroll-new-user" class="button" data-paint="primary" data-size="sm">
+                  ➕ Nuevo Usuario
+                </button>
+                <button type="button" class="button btn-admin-back-hub" data-variant="ghost" data-size="sm">
+                  ◀ Volver al Menú
+                </button>
+              </div>
+            </div>
+
+            <!-- Formulario de Usuario (Crear / Modificar) -->
+            <form id="form-admin-user" class="box stack" data-surface="sunken" data-border data-gap="sm">
+              <div class="cluster" data-justify="between" data-align="center" style="border-bottom: 1px solid rgba(125,125,125,0.15); padding-bottom: 0.35rem;">
+                <h5 id="admin-user-form-title" style="margin: 0; font-size: 0.88rem; font-weight: 700;">
+                  ➕ Registrar Nuevo Usuario
+                </h5>
+                <span id="admin-user-form-badge" class="badge" data-paint="primary" style="font-size: 0.7rem;">
+                  Modo Crear
+                </span>
+              </div>
+
+              <input type="hidden" id="admin-user-id" value="" />
+
+              <!-- Nombre y Cédula -->
+              <div class="grid grid-cols-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div class="field">
+                  <label for="admin-user-name" class="label">Nombre Completo *</label>
+                  <input type="text" id="admin-user-name" class="input" placeholder="Ej. Dra. Kris Rodríguez" required />
+                </div>
+
+                <div class="field">
+                  <label for="admin-user-ci" class="label">Cédula de Identidad (CI) *</label>
+                  <input type="text" id="admin-user-ci" class="input" placeholder="Ej. 10838729" required />
+                </div>
+              </div>
+
+              <!-- Correo y Teléfono -->
+              <div class="grid grid-cols-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div class="field">
+                  <label for="admin-user-email" class="label">Correo Electrónico (Login) *</label>
+                  <input type="email" id="admin-user-email" class="input" placeholder="usuario@odontokris.com" required />
+                </div>
+
+                <div class="field">
+                  <label for="admin-user-phone" class="label">Teléfono de Contacto</label>
+                  <input type="tel" id="admin-user-phone" class="input" placeholder="Ej. +58 414-8674528" />
+                </div>
+              </div>
+
+              <!-- Contraseña y Rol -->
+              <div class="grid grid-cols-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div class="field">
+                  <label for="admin-user-password" class="label">
+                    Contraseña <span id="admin-user-pass-required">*</span>
+                  </label>
+                  <input type="password" id="admin-user-password" class="input" placeholder="Mínimo 6 caracteres" />
+                  <small id="admin-user-pass-help" style="opacity: 0.7; font-size: 0.7rem; display: block; margin-top: 0.2rem;">
+                    Requerida para nuevos usuarios.
+                  </small>
+                </div>
+
+                <div class="field">
+                  <label for="admin-user-rol" class="label">Rol en el Sistema *</label>
+                  <select id="admin-user-rol" class="input select" required>
+                    <option value="usuario">👤 Usuario Estándar (Acceso clínico normal)</option>
+                    <option value="admin">🛡️ Administrador (Acceso total + Configuración)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Estado Activo y Botones de Acción -->
+              <div class="cluster" data-justify="between" data-align="center" style="margin-top: 0.35rem;">
+                <label class="cluster" data-gap="xs" style="cursor: pointer; user-select: none;">
+                  <input type="checkbox" id="admin-user-active" checked />
+                  <span style="font-size: 0.82rem; font-weight: 600;">Usuario Activo (Permite iniciar sesión)</span>
+                </label>
+
+                <div class="cluster" data-gap="xs">
+                  <button type="button" id="btn-cancel-user-form" class="button" data-variant="ghost" data-size="sm" style="display: none;">
+                    ✕ Cancelar Edición
+                  </button>
+                  <button type="submit" id="btn-submit-user-admin" class="button" data-paint="primary" data-size="sm">
+                    💾 Guardar Usuario
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            <!-- Barra de Filtro y Contador de Usuarios -->
+            <div class="cluster" data-justify="between" data-align="center" style="margin-top: 0.5rem;">
+              <div class="cluster" data-gap="xs" data-align="center">
+                <input type="search" id="admin-user-search-input" class="input" placeholder="🔍 Buscar por nombre, correo o CI..." style="max-width: 280px;" />
+              </div>
+              <span id="admin-users-count-badge" class="badge" data-paint="neutral" style="font-size: 0.75rem;">
+                Cargando...
+              </span>
             </div>
 
             <!-- Tabla de Usuarios con Roles -->
@@ -233,7 +326,7 @@ export function renderAdminConfigModal() {
             </div>
 
             <div class="box admin-hint-box" data-border style="padding: 0.65rem 0.85rem; font-size: 0.78rem; opacity: 0.85;">
-              ℹ️ <strong>Nota de Seguridad:</strong> El botón "Configuración" solo se despliega para los usuarios que posean el registro correspondiente con <code>role_id = 1</code> (admin) y <code>activo = true</code> en la tabla <code>user_roles</code> de Supabase.
+              ℹ️ <strong>Gestión Centralizada:</strong> Al crear o modificar un usuario con rol "admin", el sistema sincroniza automáticamente su registro con <code>role_id = 1</code> en la tabla <code>user_roles</code> de Supabase para otorgar acceso al menú de Configuración.
             </div>
           </section>
 
