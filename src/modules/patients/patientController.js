@@ -12,6 +12,7 @@ import { notificationService } from '../../services/notificationService.js';
 import { permissionService } from '../../services/permissionService.js';
 import { historialController } from '../historial/historialController.js';
 import { odontogramaController } from '../odontograma/odontogramaController.js';
+import { patientPrintService } from './patientPrintService.js';
 import { $ } from '../../utils/dom.js';
 
 export const patientController = {
@@ -121,6 +122,29 @@ export const patientController = {
       }
     });
 
+    // 5f. Botón imprimir ficha clínica en PDF desde el modal de edición
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-patient-print-pdf')) {
+        const id = $('#patient-field-id')?.value;
+        if (id) {
+          patientPrintService.printPatientFicha(id);
+        } else {
+          notificationService.warning('Primero debe guardar los datos del paciente para generar su ficha PDF.');
+        }
+      }
+    });
+
+    // 5g. Botón imprimir ficha clínica en PDF desde la fila de la tabla
+    document.addEventListener('click', (e) => {
+      const printBtn = e.target.closest('.btn-patient-row-print');
+      if (printBtn) {
+        const id = printBtn.dataset.id;
+        if (id) {
+          patientPrintService.printPatientFicha(id);
+        }
+      }
+    });
+
     // 6. Cerrar modales
     document.addEventListener('click', (e) => {
       if (e.target.closest('.btn-close-patient-form')) {
@@ -133,6 +157,12 @@ export const patientController = {
         this.pendingDeleteId = null;
         this.pendingDeleteName = '';
         this.closeDialog('modal-confirm-delete');
+      }
+      if (e.target.closest('.btn-close-print-preview')) {
+        this.closeDialog('modal-patient-print-preview');
+      }
+      if (e.target.closest('#btn-trigger-print') || e.target.closest('#btn-trigger-print-bottom')) {
+        window.print();
       }
     });
 
@@ -436,11 +466,13 @@ export const patientController = {
     this.updateAgeBadge('');
     this.populateConsultoriosSelect();
 
-    // En modo creación ocultar acceso a historial y odontograma
+    // En modo creación ocultar acceso a historial, odontograma y ficha PDF
     const btnHistorial = $('#btn-patient-open-historial');
     if (btnHistorial) btnHistorial.style.display = 'none';
     const btnOdonto = $('#btn-patient-open-odontograma');
     if (btnOdonto) btnOdonto.style.display = 'none';
+    const btnPrint = $('#btn-patient-print-pdf');
+    if (btnPrint) btnPrint.style.display = 'none';
 
     // Seleccionar por defecto la sede activa
     const activeConsultorio = consultorioModel.getActiveConsultorio();
@@ -524,7 +556,7 @@ export const patientController = {
       });
     }
 
-    // Mostrar botón de acceso al Historial Médico y Odontograma en modo Edición
+    // Mostrar botón de acceso al Historial Médico, Odontograma y Ficha PDF en modo Edición
     const btnHistorial = $('#btn-patient-open-historial');
     if (btnHistorial) {
       btnHistorial.style.display = 'inline-flex';
@@ -532,6 +564,10 @@ export const patientController = {
     const btnOdonto = $('#btn-patient-open-odontograma');
     if (btnOdonto) {
       btnOdonto.style.display = 'inline-flex';
+    }
+    const btnPrint = $('#btn-patient-print-pdf');
+    if (btnPrint) {
+      btnPrint.style.display = 'inline-flex';
     }
 
     this.openDialog('modal-patient-form');

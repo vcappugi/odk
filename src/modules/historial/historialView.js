@@ -28,6 +28,9 @@ export function renderHistorialModal() {
           </div>
           
           <div class="cluster" data-gap="xs">
+            <button type="button" id="btn-historial-print-pdf" class="button" data-variant="outlined" data-size="sm" style="border-color: #6366f1; color: #6366f1; font-weight: 600;" title="Imprimir ficha clínica en PDF">
+              <span>🖨️ Ficha PDF</span>
+            </button>
             <button type="button" id="btn-historial-open-odontograma" class="button" data-variant="outlined" data-size="sm" style="border-color: #0ea5e9; color: #0ea5e9; font-weight: 600;" title="Abrir y editar el odontograma gráfico de este paciente">
               <span>🦷 Odontograma Gráfico</span>
             </button>

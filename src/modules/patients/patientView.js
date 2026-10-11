@@ -247,8 +247,11 @@ export function renderPatientManagementModals() {
               <button type="button" id="btn-patient-open-historial" class="button" data-variant="outlined" data-size="sm" style="display: none; border-color: var(--primary, #0ea5e9); color: var(--primary, #0ea5e9); font-weight: 600;" title="Abrir y gestionar historial médico de este paciente">
                 📋 Historial Médico
               </button>
-              <button type="button" id="btn-patient-open-odontograma" class="button" data-variant="outlined" data-size="sm" style="display: none; border-color: #0ea5e9; color: #0ea5e9; font-weight: 600;" title="Abrir odontograma clínico de este paciente">
+              <button type="button" id="btn-patient-open-odontograma" class="button" data-variant="outlined" data-size="sm" style="display: none; border-color: #0ea5e9; color: #0ea5e9); font-weight: 600;" title="Abrir odontograma clínico de este paciente">
                 🦷 Odontograma
+              </button>
+              <button type="button" id="btn-patient-print-pdf" class="button" data-variant="outlined" data-size="sm" style="display: none; border-color: #6366f1; color: #6366f1; font-weight: 600;" title="Imprimir ficha clínica en PDF con historial médico y odontograma">
+                🖨️ Ficha PDF
               </button>
             </div>
             <div class="cluster" data-gap="xs">
@@ -367,6 +370,41 @@ export function renderPatientManagementModals() {
         </footer>
       </div>
     </dialog>
+
+    <!-- 5. Modal de Vista Previa de Impresión y Exportación a PDF -->
+    <dialog id="modal-patient-print-preview" class="dialog custom-modal modal-wide" aria-labelledby="print-preview-patient-title" style="max-width: 980px; width: 96vw;">
+      <div class="modal-box box stack" data-surface="raised" data-border data-gap="sm" style="max-height: 94vh; display: flex; flex-direction: column;">
+        
+        <header class="modal-header cluster no-print" data-justify="between" data-align="center">
+          <div class="cluster" data-gap="xs" data-align="center">
+            <span class="modal-icon-badge" style="font-size: 1.4rem;">🖨️</span>
+            <div>
+              <h3 id="print-preview-patient-title" style="margin: 0; font-size: 1.2rem;">Ficha Clínica del Paciente</h3>
+              <small style="opacity: 0.75; font-size: 0.8rem;">Vista previa de impresión y exportación en formato PDF (Historial Médico + Odontograma)</small>
+            </div>
+          </div>
+
+          <div class="cluster" data-gap="xs">
+            <button type="button" id="btn-trigger-print" class="button" data-paint="primary" data-size="sm">
+              <span>🖨️ Imprimir / Guardar en PDF</span>
+            </button>
+            <button type="button" class="button btn-close-print-preview" data-variant="ghost" data-size="sm" aria-label="Cerrar vista previa">✕</button>
+          </div>
+        </header>
+
+        <div class="print-preview-body" style="overflow-y: auto; flex: 1; padding: 0.5rem; background: rgba(0,0,0,0.03); border-radius: 6px;">
+          <div id="patient-print-preview-content"></div>
+        </div>
+
+        <footer class="cluster modal-footer no-print" data-justify="end" data-gap="xs" style="padding-top: 0.4rem; border-top: 1px solid rgba(125,125,125,0.15);">
+          <button type="button" class="button btn-close-print-preview" data-variant="ghost">Cerrar</button>
+          <button type="button" id="btn-trigger-print-bottom" class="button" data-paint="primary">
+            🖨️ Imprimir / Guardar como PDF
+          </button>
+        </footer>
+
+      </div>
+    </dialog>
   `;
 }
 
@@ -477,6 +515,18 @@ export function renderPatientTableRow(p) {
             aria-label="Ver odontograma de ${safeName}"
             style="color: #0ea5e9;">
             🦷
+          </button>
+          <button 
+            type="button" 
+            class="button btn-patient-row-print" 
+            data-id="${p.id}" 
+            data-name="${safeName}" 
+            data-variant="ghost" 
+            data-size="sm" 
+            title="Imprimir ficha clínica en PDF de ${safeName}"
+            aria-label="Imprimir ficha clínica en PDF de ${safeName}"
+            style="color: #6366f1;">
+            🖨️
           </button>
           <button 
             type="button" 

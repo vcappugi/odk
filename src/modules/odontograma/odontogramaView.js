@@ -72,6 +72,9 @@ export function renderOdontogramaModal() {
           </div>
 
           <div class="cluster" data-gap="xs">
+            <button type="button" id="btn-odontograma-print-pdf" class="button" data-variant="outlined" data-size="sm" style="border-color: #6366f1; color: #6366f1; font-weight: 600;" title="Imprimir ficha clínica en PDF con odontograma e historial">
+              🖨️ Ficha PDF
+            </button>
             <button type="button" id="btn-odontograma-to-historial" class="button" data-variant="outlined" data-size="sm" title="Ver historial médico completo de este paciente">
               📋 Ver Historial Médico
             </button>

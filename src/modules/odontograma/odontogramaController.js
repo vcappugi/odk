@@ -13,6 +13,7 @@ import {
 } from './odontogramaView.js';
 import { patientModel } from '../patients/patientModel.js';
 import { historialController } from '../historial/historialController.js';
+import { patientPrintService } from '../patients/patientPrintService.js';
 import { notificationService } from '../../services/notificationService.js';
 import { permissionService } from '../../services/permissionService.js';
 import { $ } from '../../utils/dom.js';
@@ -114,6 +115,17 @@ export const odontogramaController = {
       if (e.target.closest('#btn-odontograma-to-historial')) {
         this.closeDialog('modal-odontograma');
         historialController.openHistorial(this.currentPacienteId, this.currentPacienteNombre, this.currentCitaId);
+      }
+    });
+
+    // 8b. Botón imprimir Ficha Clínica en PDF desde el Odontograma
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-odontograma-print-pdf')) {
+        if (this.currentPacienteId) {
+          patientPrintService.printPatientFicha(this.currentPacienteId);
+        } else {
+          notificationService.warning('Seleccione un paciente para imprimir su ficha.');
+        }
       }
     });
   },
