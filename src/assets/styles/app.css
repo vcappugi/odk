@@ -3041,25 +3041,61 @@ html[data-theme="light"] .tooth-svg-box svg {
 
 /* REGLAS DE IMPRESIÓN (PDF / PRINT NATIVO) */
 @media print {
-  body {
-    background: #ffffff !important;
-    color: #000000 !important;
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
   }
 
-  body > *:not(#modal-patient-print-preview) {
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Ocultar interfaz de la app para que solo quede la ficha clínica */
+  header.top-compact-header,
+  section.quick-actions-bar,
+  main.calendar-main-section,
+  .no-print,
+  button,
+  .skip-link,
+  .dialog:not(#modal-patient-print-preview) {
     display: none !important;
   }
 
+  /* Permitir que los contenedores ancestros del modal fluyan sin cortes de altura ni overflow */
+  body,
+  #app,
+  .odontokris-layout {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+
+  /* Visualización del modal de impresión */
   #modal-patient-print-preview {
     display: block !important;
     position: static !important;
     border: none !important;
     max-width: 100% !important;
     width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
     padding: 0 !important;
     margin: 0 !important;
     box-shadow: none !important;
-    background: transparent !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+
+  #modal-patient-print-preview::backdrop {
+    display: none !important;
   }
 
   #modal-patient-print-preview .modal-box {
@@ -3067,17 +3103,22 @@ html[data-theme="light"] .tooth-svg-box svg {
     box-shadow: none !important;
     padding: 0 !important;
     margin: 0 !important;
-    background: transparent !important;
-  }
-
-  .no-print {
-    display: none !important;
+    background: #ffffff !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   .print-preview-body {
     overflow: visible !important;
+    max-height: none !important;
     padding: 0 !important;
     background: transparent !important;
+  }
+
+  #patient-print-preview-content {
+    display: block !important;
+    width: 100% !important;
+    background: #ffffff !important;
   }
 
   .printable-ficha-wrapper {
@@ -3085,6 +3126,8 @@ html[data-theme="light"] .tooth-svg-box svg {
     padding: 0 !important;
     margin: 0 !important;
     border: none !important;
+    width: 100% !important;
+    background: #ffffff !important;
   }
 
   .print-section {
@@ -3094,10 +3137,5 @@ html[data-theme="light"] .tooth-svg-box svg {
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-  }
-
-  @page {
-    size: A4 portrait;
-    margin: 10mm;
   }
 }

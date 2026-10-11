@@ -319,6 +319,434 @@ export const patientPrintService = {
     `;
   },
 
+  currentPatientData: null,
+
+  /**
+   * Genera los estilos CSS embebidos completos para asegurar que la impresión sea exacta y no en blanco
+   */
+  getPrintableStyles() {
+    return `
+      * {
+        box-sizing: border-box;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 8mm 10mm;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #ffffff !important;
+        color: #0f172a !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 9pt;
+        line-height: 1.35;
+      }
+      .printable-ficha-wrapper {
+        width: 100%;
+        max-width: 100%;
+        margin: 0 auto;
+        background: #ffffff;
+        padding: 0;
+      }
+      /* Header */
+      .print-header {
+        margin-bottom: 8px;
+        border-bottom: 2.5px solid #0284c7;
+        padding-bottom: 6px;
+      }
+      .print-header-inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .print-brand-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .print-logo-box {
+        width: 38px;
+        height: 38px;
+        background: rgba(2, 132, 199, 0.1);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .print-clinic-title {
+        margin: 0;
+        font-size: 16pt;
+        font-weight: 800;
+        color: #0284c7;
+        letter-spacing: -0.02em;
+        line-height: 1;
+      }
+      .print-clinic-subtitle {
+        margin: 2px 0 0;
+        font-size: 6.5pt;
+        font-weight: 600;
+        color: #64748b;
+        letter-spacing: 0.05em;
+      }
+      .print-doc-meta {
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        font-size: 7.5pt;
+        color: #475569;
+      }
+      .print-meta-badge {
+        background: #0284c7;
+        color: #ffffff;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 7pt;
+        display: inline-block;
+        align-self: flex-end;
+      }
+      /* Sections */
+      .print-section {
+        margin-bottom: 8px;
+        page-break-inside: avoid;
+      }
+      .print-section-title {
+        font-size: 8.5pt;
+        font-weight: 700;
+        color: #0f172a;
+        border-left: 3.5px solid #0284c7;
+        padding-left: 6px;
+        margin: 0 0 4px 0;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .print-sub-tag {
+        font-size: 6.5pt;
+        color: #64748b;
+        font-weight: 600;
+      }
+      /* Patient data */
+      .print-patient-grid {
+        display: flex;
+        gap: 10px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 6px 8px;
+        align-items: center;
+      }
+      .print-patient-photo-col {
+        width: 58px;
+        height: 58px;
+        flex-shrink: 0;
+      }
+      .print-avatar-img {
+        width: 58px;
+        height: 58px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 1px solid #cbd5e1;
+        display: block;
+      }
+      .print-avatar-placeholder {
+        width: 58px;
+        height: 58px;
+        background: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        border-radius: 6px;
+        border: 1px solid #cbd5e1;
+      }
+      .print-patient-info-table {
+        flex: 1;
+        display: grid;
+        grid-template-columns: auto 1fr auto 1fr;
+        gap: 3px 8px;
+        font-size: 7.8pt;
+        align-items: center;
+      }
+      .print-info-row {
+        display: contents;
+      }
+      .print-lbl {
+        font-weight: 600;
+        color: #64748b;
+        white-space: nowrap;
+      }
+      .print-val {
+        color: #0f172a;
+      }
+      .print-val-highlight {
+        font-weight: 700;
+        color: #0284c7;
+        font-size: 8.5pt;
+      }
+      /* Alerts */
+      .print-alerts-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+      .print-alert-card {
+        border-radius: 6px;
+        padding: 5px 7px;
+        font-size: 7.5pt;
+        border: 1px solid #e2e8f0;
+      }
+      .print-alert-danger {
+        background: #fef2f2 !important;
+        border-color: #fecaca !important;
+        color: #991b1b !important;
+      }
+      .print-alert-warning {
+        background: #fffbeb !important;
+        border-color: #fef3c7 !important;
+        color: #92400e !important;
+      }
+      .print-alert-info {
+        background: #f0f9ff !important;
+        border-color: #bae6fd !important;
+        color: #075985 !important;
+      }
+      .print-alert-header {
+        font-weight: 700;
+        margin-bottom: 2px;
+        font-size: 7pt;
+      }
+      .print-alert-body {
+        margin: 0;
+        line-height: 1.25;
+      }
+      /* Odontograma */
+      .print-odontograma-box {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        padding: 5px;
+        page-break-inside: avoid;
+      }
+      .print-arch-label {
+        font-size: 6.5pt;
+        font-weight: 700;
+        color: #64748b;
+        text-align: center;
+        letter-spacing: 0.05em;
+        margin: 1px 0;
+      }
+      .print-teeth-row {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 3px;
+        margin: 2px 0;
+      }
+      .print-quadrant {
+        display: flex;
+        gap: 2px;
+        align-items: center;
+      }
+      .print-midline {
+        width: 2px;
+        height: 32px;
+        background: #94a3b8;
+        margin: 0 3px;
+      }
+      .print-occlusion-line {
+        text-align: center;
+        font-size: 5.5pt;
+        font-weight: 700;
+        color: #94a3b8;
+        letter-spacing: 0.1em;
+        margin: 1px 0;
+      }
+      .tooth-unit {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 36px !important;
+        user-select: none;
+      }
+      .tooth-number {
+        font-size: 6pt !important;
+        font-weight: 700;
+        padding: 0 2px !important;
+        background: #e2e8f0;
+        border-radius: 3px;
+        margin-bottom: 1px;
+        line-height: 1.1;
+      }
+      .tooth-svg-box {
+        width: 30px !important;
+        height: 30px !important;
+        position: relative;
+      }
+      .tooth-svg {
+        width: 30px !important;
+        height: 30px !important;
+        display: block;
+      }
+      .print-odonto-legend {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 4px 10px;
+        font-size: 6pt;
+        color: #475569;
+        margin-top: 4px;
+        padding-top: 3px;
+        border-top: 1px dashed #cbd5e1;
+      }
+      /* Tables */
+      .print-findings-box {
+        margin-top: 5px;
+      }
+      .print-subsection-title {
+        font-size: 7.5pt;
+        font-weight: 700;
+        color: #334155;
+        margin: 0 0 2px 0;
+      }
+      .print-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 7.2pt;
+        margin-top: 2px;
+      }
+      .print-table th {
+        background: #f1f5f9 !important;
+        color: #334155 !important;
+        font-weight: 700;
+        padding: 3px 5px;
+        border: 1px solid #cbd5e1;
+        text-align: left;
+        font-size: 6.8pt;
+      }
+      .print-table td {
+        padding: 3px 5px;
+        border: 1px solid #e2e8f0;
+        color: #1e293b;
+        vertical-align: top;
+      }
+      .print-table tr:nth-child(even) {
+        background: #f8fafc;
+      }
+      .print-badge-status {
+        background: #e0f2fe !important;
+        color: #0369a1 !important;
+        padding: 1px 3px;
+        border-radius: 3px;
+        font-size: 6pt;
+        font-weight: 600;
+        display: inline-block;
+      }
+      .print-empty-note {
+        font-size: 7pt;
+        color: #64748b;
+        font-style: italic;
+        margin: 2px 0;
+      }
+      /* Footer */
+      .print-footer {
+        margin-top: 12px;
+        page-break-inside: avoid;
+      }
+      .print-signatures-grid {
+        display: flex;
+        justify-content: space-around;
+        gap: 30px;
+        margin-top: 16px;
+      }
+      .print-sign-box {
+        width: 200px;
+        text-align: center;
+        font-size: 6.8pt;
+        color: #334155;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .print-sign-line {
+        width: 170px;
+        height: 1px;
+        background: #334155;
+        margin-bottom: 4px;
+      }
+      .print-disclaimer {
+        text-align: center;
+        margin-top: 10px;
+        color: #94a3b8;
+        font-size: 5.8pt;
+      }
+    `;
+  },
+
+  /**
+   * Ejecuta la impresión de forma aislada a través de un iframe invisible
+   * garantizando que el PDF renderice exactamente la ficha clínica sin interferencia de modales ni páginas en blanco
+   */
+  executePrint() {
+    if (!this.currentPatientData) {
+      window.print();
+      return;
+    }
+
+    const { patient, historyList, odontogramaMap } = this.currentPatientData;
+    const fichaHtml = this.generateFichaHtml(patient, historyList, odontogramaMap);
+    const styles = this.getPrintableStyles();
+
+    let iframe = document.getElementById('odk-print-iframe');
+    if (iframe) {
+      iframe.remove();
+    }
+
+    iframe = document.createElement('iframe');
+    iframe.id = 'odk-print-iframe';
+    iframe.style.position = 'fixed';
+    iframe.style.top = '-10000px';
+    iframe.style.left = '-10000px';
+    iframe.style.width = '1024px';
+    iframe.style.height = '1000px';
+    iframe.style.border = '0';
+    iframe.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Ficha Clínica · ${escapeHtml(patient.nombre || 'Paciente')}</title>
+        <style>${styles}</style>
+      </head>
+      <body>
+        ${fichaHtml}
+      </body>
+      </html>
+    `);
+    doc.close();
+
+    // Pequeño timeout para permitir que fuentes, imágenes y SVG se estabilicen antes de invocar print()
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (err) {
+        console.warn('[patientPrintService] Fallback a print en ventana principal:', err);
+        window.print();
+      }
+    }, 300);
+  },
+
   /**
    * Abre la vista previa de impresión y permite imprimir / guardar como PDF
    * @param {number|string} patientId 
@@ -345,19 +773,23 @@ export const patientPrintService = {
       // 3. Obtener odontograma
       const odontogramaMap = await odontogramaModel.getOdontogramaByPaciente(patientId);
 
+      // Guardar referencia activa para el botón de impresión
+      this.currentPatientData = { patient, historyList, odontogramaMap };
+
       // 4. Inyectar contenido en el contenedor de vista previa
       const previewModal = $('#modal-patient-print-preview');
       const container = $('#patient-print-preview-content');
 
       if (!previewModal || !container) {
-        // Si no existe el modal en el DOM, crearlo dinámicamente
         this.ensurePrintPreviewModalInDom();
       }
 
       const modalEl = $('#modal-patient-print-preview');
       const contentEl = $('#patient-print-preview-content');
 
-      contentEl.innerHTML = this.generateFichaHtml(patient, historyList, odontogramaMap);
+      if (contentEl) {
+        contentEl.innerHTML = this.generateFichaHtml(patient, historyList, odontogramaMap);
+      }
       
       // Actualizar título
       const titleEl = $('#print-preview-patient-title');
@@ -365,7 +797,9 @@ export const patientPrintService = {
         titleEl.textContent = `Ficha Clínica · ${patient.nombre} (CI: ${patient.ci || 'S/CI'})`;
       }
 
-      modalEl.showModal();
+      if (modalEl && typeof modalEl.showModal === 'function') {
+        modalEl.showModal();
+      }
     } catch (err) {
       console.error('[PatientPrintService] Error generando ficha PDF:', err);
       notificationService.error('No se pudo generar la ficha clínica: ' + err.message);
@@ -425,7 +859,7 @@ export const patientPrintService = {
         if (d && d.open) d.close();
       }
       if (e.target.closest('#btn-trigger-print') || e.target.closest('#btn-trigger-print-bottom')) {
-        window.print();
+        this.executePrint();
       }
     });
   }

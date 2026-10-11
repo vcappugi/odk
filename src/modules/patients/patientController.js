@@ -162,7 +162,7 @@ export const patientController = {
         this.closeDialog('modal-patient-print-preview');
       }
       if (e.target.closest('#btn-trigger-print') || e.target.closest('#btn-trigger-print-bottom')) {
-        window.print();
+        patientPrintService.executePrint();
       }
     });
 
