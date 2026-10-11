@@ -5,6 +5,7 @@
 
 import { citaModel } from './citaModel.js';
 import { patientModel } from '../patients/patientModel.js';
+import { patientController } from '../patients/patientController.js';
 import { adminModel } from '../admin/adminModel.js';
 import { consultorioModel } from '../consultorio/consultorioModel.js';
 import { notificationService } from '../../services/notificationService.js';
@@ -15,6 +16,22 @@ export const citaController = {
 
   init() {
     this.bindEvents();
+    this.subscribeToPatientChanges();
+  },
+
+  /**
+   * Escucha la creación o actualización de pacientes para auto-refrescar y preseleccionar
+   */
+  subscribeToPatientChanges() {
+    window.addEventListener('patient:saved', async (e) => {
+      const savedPatient = e.detail;
+      const pacienteSelect = $('#cita-paciente');
+      // Si el select de paciente está presente en el modal de citas, refrescar opciones
+      if (pacienteSelect && savedPatient?.id) {
+        await this.populateSelects(savedPatient.id);
+        pacienteSelect.value = String(savedPatient.id);
+      }
+    });
   },
 
   bindEvents() {
@@ -34,7 +51,16 @@ export const citaController = {
       }
     });
 
-    // 3. Cerrar modal con botón cancelar o X
+    // 3. Botón / Icono para Agregar Paciente desde el Modal de Citas
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-cita-add-patient') || e.target.closest('#btn-cita-add-patient-icon')) {
+        e.preventDefault();
+        e.stopPropagation();
+        patientController.openCreateForm();
+      }
+    });
+
+    // 4. Cerrar modal con botón cancelar o X
     document.addEventListener('click', (e) => {
       const closeBtn = e.target.closest('#modal-cita .btn-close-modal');
       if (closeBtn) {

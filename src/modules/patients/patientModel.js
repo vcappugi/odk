@@ -69,7 +69,12 @@ export const patientModel = {
       throw error;
     }
 
-    return data?.[0];
+    const created = data?.[0];
+    if (created) {
+      window.dispatchEvent(new CustomEvent('patient:saved', { detail: created }));
+    }
+
+    return created;
   },
 
   /**
@@ -90,7 +95,12 @@ export const patientModel = {
       throw error;
     }
 
-    return data?.[0];
+    const updated = data?.[0];
+    if (updated) {
+      window.dispatchEvent(new CustomEvent('patient:saved', { detail: updated }));
+    }
+
+    return updated;
   },
 
   /**

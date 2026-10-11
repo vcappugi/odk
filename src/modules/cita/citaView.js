@@ -24,12 +24,34 @@ export function renderCitaModal() {
         <form id="form-cita" class="stack" data-gap="sm">
           <input type="hidden" id="cita-id" value="" />
 
-          <!-- Paciente -->
+          <!-- Paciente (con icono para agregar paciente rápidamente) -->
           <div class="field">
-            <label for="cita-paciente" class="label">Paciente *</label>
-            <select id="cita-paciente" class="input select" required>
-              <option value="" disabled selected>Seleccione un paciente registrado...</option>
-            </select>
+            <div class="cluster" data-justify="between" data-align="center" style="margin-bottom: 0.25rem;">
+              <label for="cita-paciente" class="label" style="margin-bottom: 0;">Paciente *</label>
+              <button type="button" 
+                      id="btn-cita-add-patient" 
+                      class="button btn-add-patient-inline" 
+                      data-size="sm" 
+                      data-variant="ghost" 
+                      title="Registrar nuevo paciente">
+                <span>👤➕</span>
+                <span>Nuevo Paciente</span>
+              </button>
+            </div>
+            <div class="cluster" data-gap="xs" style="align-items: center; width: 100%;">
+              <select id="cita-paciente" class="input select" style="flex: 1;" required>
+                <option value="" disabled selected>Seleccione un paciente registrado...</option>
+              </select>
+              <button type="button" 
+                      id="btn-cita-add-patient-icon" 
+                      class="button btn-icon-add-patient" 
+                      data-paint="primary" 
+                      data-size="sm" 
+                      title="Registrar nuevo paciente" 
+                      aria-label="Registrar nuevo paciente">
+                ➕
+              </button>
+            </div>
           </div>
 
           <!-- Doctor Asignado (Obligatorio) -->
