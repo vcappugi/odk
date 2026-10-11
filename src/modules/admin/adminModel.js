@@ -922,22 +922,20 @@ export const adminModel = {
       throw new Error(`Error actualizando permisos: ${delError.message}`);
     }
 
-    // 2. Filtrar permisos que tienen al menos un permiso habilitado
-    const recordsToInsert = permissionsList
-      .filter(p => p.leer || p.escribir || p.activo)
-      .map(p => ({
-        rol_id: Number(roleId),
-        objeto_id: Number(p.objeto_id),
-        leer: Boolean(p.leer),
-        escribir: Boolean(p.escribir),
-        activo: Boolean(p.activo !== false)
-      }));
+    // 2. Mapear permisos con sus valores booleanos explícitos
+    const recordsToInsert = permissionsList.map(p => ({
+      rol_id: Number(roleId),
+      objeto_id: Number(p.objeto_id),
+      leer: Boolean(p.leer),
+      escribir: Boolean(p.escribir),
+      activo: Boolean(p.activo)
+    }));
 
     if (recordsToInsert.length === 0) {
       return true;
     }
 
-    // 3. Insertar registros nuevos en roles_permision
+    // 3. Insertar registros en roles_permision
     const { error: insertError } = await supabase
       .from('roles_permision')
       .insert(recordsToInsert);

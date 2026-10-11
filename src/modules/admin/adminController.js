@@ -7,6 +7,7 @@
 import { adminModel } from './adminModel.js';
 import { authModel } from '../auth/authModel.js';
 import { notificationService } from '../../services/notificationService.js';
+import { permissionService } from '../../services/permissionService.js';
 import { $ } from '../../utils/dom.js';
 
 export const adminController = {
@@ -17,7 +18,7 @@ export const adminController = {
 
   /**
    * Actualiza la visibilidad del botón 'Configuración' en la barra de botones.
-   * Solo visible si el usuario tiene rol 'admin' verificado en la tabla 'user_roles'.
+   * Depende de la permisología del rol asignado en la tabla 'roles_permision' (objeto 'modal-admin-config').
    */
   async updateVisibility() {
     const configBtn = $('#btn-quick-config');
@@ -31,15 +32,13 @@ export const adminController = {
         return;
       }
 
-      // Consultar verificación estricta en tabla 'user_roles'
-      const isAdmin = await adminModel.isCurrentUserAdmin();
+      // Consultar permiso sobre 'modal-admin-config'
+      const hasPerm = permissionService.canRead('modal-admin-config');
+      const isAdmin = (await adminModel.isCurrentUserAdmin()) || hasPerm;
 
-      if (isAdmin) {
+      if (hasPerm || isAdmin) {
         configBtn.style.display = 'inline-flex';
-        // Sincronizar estado en sesión local para acceso instantáneo
-        if (!user.isAdmin) {
-          authModel.saveSession(user, true);
-        }
+        permissionService.applyAdminSectionsPermissions();
       } else {
         configBtn.style.display = 'none';
         this.closeModal();
@@ -350,6 +349,24 @@ export const adminController = {
         }
       }
     });
+
+    // Validar permisos del rol antes de acceder a secciones protegidas
+    if (section === 'consultorio' && !permissionService.canRead('admin-section-consultorio')) {
+      notificationService.warning('Tu rol no tiene permiso para consultar Sedes / Consultorios.');
+      return this.switchSection('hub');
+    }
+    if (section === 'doctor' && !permissionService.canRead('admin-section-doctor')) {
+      notificationService.warning('Tu rol no tiene permiso para consultar Doctores.');
+      return this.switchSection('hub');
+    }
+    if (section === 'users' && !permissionService.canRead('admin-section-users')) {
+      notificationService.warning('Tu rol no tiene permiso para consultar Usuarios.');
+      return this.switchSection('hub');
+    }
+    if (section === 'roles' && !permissionService.canRead('admin-section-user-roles')) {
+      notificationService.warning('Tu rol no tiene permiso para consultar Roles y Permisos.');
+      return this.switchSection('hub');
+    }
 
     // Cargar datos correspondientes al cambiar de sección
     if (section === 'consultorio') {
@@ -1331,6 +1348,12 @@ export const adminController = {
 
       // Actualizar listado de roles para reflejar el nuevo conteo de permisos
       await this.loadRolesSection();
+
+      // Si el rol modificado es el del usuario en sesión, recargar y aplicar permisos inmediatamente
+      const currentUser = authModel.getCurrentUser();
+      if (currentUser && Number(currentUser.role_id) === Number(this.activePermissionsRoleId)) {
+        await permissionService.loadPermissionsForUser(currentUser.id, currentUser.role_id);
+      }
     } catch (err) {
       notificationService.error(`Error guardando permisos: ${err.message}`);
     } finally {

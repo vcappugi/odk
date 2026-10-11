@@ -6,6 +6,7 @@
 import bcrypt from 'bcryptjs';
 import { getSupabase, getConnectionStatus } from '../../services/supabaseClient.js';
 import { APP_CONSTANTS } from '../../config/constants.js';
+import { permissionService } from '../../services/permissionService.js';
 
 const AUTH_STORAGE_KEY = 'odk_auth_user_session';
 
@@ -24,11 +25,12 @@ export const authModel = {
 
   /**
    * Guarda la sesión del usuario (sin almacenar la clave)
-   * Incluye el indicador isAdmin y el consultorio activo seleccionado
+   * Incluye el rol asignado, permisos y consultorio activo
    */
   saveSession(user, isAdmin = null, consultorio = null) {
     if (!user) return;
     const activeConsultorio = consultorio || user.consultorio || this.getActiveConsultorio() || null;
+    const resolvedIsAdmin = isAdmin !== null ? Boolean(isAdmin) : Boolean(user.rol === 'admin' || user.isAdmin === true || user.role_id === 1);
     const sessionData = {
       id: user.id,
       nombre: user.nombre,
@@ -36,7 +38,9 @@ export const authModel = {
       telefono: user.telefono || '',
       ci: user.ci || '',
       rol: user.rol || 'usuario',
-      isAdmin: isAdmin !== null ? Boolean(isAdmin) : Boolean(user.rol === 'admin' || user.isAdmin === true),
+      role_id: user.role_id || (resolvedIsAdmin ? 1 : 2),
+      role_name: user.role_name || user.rol || (resolvedIsAdmin ? 'admin' : 'usuario'),
+      isAdmin: resolvedIsAdmin,
       consultorio_id: activeConsultorio?.id || user.consultorio_id || null,
       consultorio_nombre: activeConsultorio?.nombre || user.consultorio_nombre || 'Sede Principal',
       consultorio: activeConsultorio,
@@ -85,6 +89,11 @@ export const authModel = {
    */
   logout() {
     localStorage.removeItem(AUTH_STORAGE_KEY);
+    try {
+      permissionService.clear();
+    } catch {
+      // Ignorar si no está inicializado
+    }
   },
 
   /**
@@ -219,8 +228,11 @@ export const authModel = {
         throw new Error('Contraseña incorrecta.');
       }
 
-      // Verificar rol admin en la tabla user_roles
+      // Verificar rol y obtener role_id desde la tabla user_roles
       let isAdmin = false;
+      let roleId = null;
+      let roleName = user.rol || 'usuario';
+
       try {
         const { data: userRoles } = await supabase
           .from('user_roles')
@@ -228,12 +240,32 @@ export const authModel = {
           .eq('user_id', user.id)
           .eq('activo', true);
 
+        const activeUR = (userRoles || [])[0];
+        if (activeUR) {
+          roleId = activeUR.role_id;
+          roleName = activeUR.roles?.nombre || user.rol;
+        }
+
         isAdmin = (userRoles || []).some(ur => {
           const rName = ur.roles?.nombre?.toLowerCase() || ur.roles?.tipo?.toLowerCase();
           return rName === 'admin' || ur.role_id === 1;
         }) || user.rol === 'admin';
       } catch (err) {
         isAdmin = user.rol === 'admin';
+      }
+
+      if (!roleId) {
+        roleId = isAdmin ? 1 : 2;
+      }
+
+      user.role_id = roleId;
+      user.role_name = roleName;
+
+      // Cargar y aplicar permisología completa desde 'roles_permision'
+      try {
+        await permissionService.loadPermissionsForUser(user.id, roleId);
+      } catch (permErr) {
+        console.warn('[AuthModel] Aviso al cargar permisos del rol:', permErr);
       }
 
       return this.saveSession(user, isAdmin, selectedConsultorio);

@@ -9,6 +9,7 @@ import { consultorioModel } from '../consultorio/consultorioModel.js';
 import { googleDriveService, GOOGLE_DRIVE_CONFIG } from '../../services/googleDriveService.js';
 import { renderPatientTableRow, renderEmptyPatientsState } from './patientView.js';
 import { notificationService } from '../../services/notificationService.js';
+import { permissionService } from '../../services/permissionService.js';
 import { $ } from '../../utils/dom.js';
 
 export const patientController = {
@@ -246,8 +247,18 @@ export const patientController = {
    * Abre el modal principal y carga los datos desde Supabase
    */
   async openManagementModal() {
+    if (!permissionService.canRead('modal-patient-form')) {
+      notificationService.warning('Tu rol no tiene permiso para consultar el módulo de pacientes.');
+      return;
+    }
     this.openDialog('modal-manage-patients');
     await this.loadPatients();
+
+    // Controlar visibilidad del botón para crear pacientes según permiso de escritura
+    const btnCreate = $('#btn-open-create-patient');
+    if (btnCreate) {
+      btnCreate.style.display = permissionService.canWrite('modal-patient-form') ? 'inline-flex' : 'none';
+    }
   },
 
   /**
@@ -305,6 +316,14 @@ export const patientController = {
     }
 
     tbody.innerHTML = list.map(p => renderPatientTableRow(p)).join('');
+
+    // Si no tiene permiso de escritura, ocultar botones de eliminar y deshabilitar edición destructiva
+    const canWrite = permissionService.canWrite('modal-patient-form');
+    if (!canWrite) {
+      tbody.querySelectorAll('.btn-delete-patient').forEach(btn => {
+        btn.style.display = 'none';
+      });
+    }
   },
 
   /**
@@ -338,8 +357,16 @@ export const patientController = {
    * Abre el formulario en modo CREAR
    */
   openCreateForm() {
+    if (!permissionService.canWrite('modal-patient-form')) {
+      notificationService.warning('Tu rol no tiene permiso para registrar nuevos pacientes.');
+      return;
+    }
+
     const form = $('#form-patient');
-    if (form) form.reset();
+    if (form) {
+      form.reset();
+      form.querySelectorAll('input, select, textarea').forEach(el => el.disabled = false);
+    }
 
     const idField = $('#patient-field-id');
     if (idField) idField.value = '';
@@ -351,7 +378,10 @@ export const patientController = {
     if (icon) icon.textContent = '➕';
 
     const submitBtn = $('#btn-submit-patient-form');
-    if (submitBtn) submitBtn.textContent = 'Guardar Paciente';
+    if (submitBtn) {
+      submitBtn.style.display = 'inline-flex';
+      submitBtn.textContent = 'Guardar Paciente';
+    }
 
     // Limpiar foto, previsualización y badges
     this.clearPhotoSelection();
@@ -372,6 +402,13 @@ export const patientController = {
    * Abre el formulario en modo EDITAR (Modificar)
    */
   openEditForm(patientId) {
+    if (!permissionService.canRead('modal-patient-form')) {
+      notificationService.warning('Tu rol no tiene permiso para consultar datos de pacientes.');
+      return;
+    }
+
+    const canWrite = permissionService.canWrite('modal-patient-form');
+
     const patient = this.patientsList.find(p => String(p.id) === String(patientId));
     if (!patient) {
       notificationService.error('Paciente no encontrado.');
@@ -414,13 +451,24 @@ export const patientController = {
     this.updatePreviewFromUrl(patient.foto);
 
     const title = $('#patient-form-title');
-    if (title) title.textContent = 'Modificar Paciente';
+    if (title) title.textContent = canWrite ? 'Modificar Paciente' : 'Consulta de Ficha de Paciente';
 
     const icon = $('#patient-form-icon');
-    if (icon) icon.textContent = '✏️';
+    if (icon) icon.textContent = canWrite ? '✏️' : '👁️';
 
     const submitBtn = $('#btn-submit-patient-form');
-    if (submitBtn) submitBtn.textContent = 'Actualizar Datos';
+    if (submitBtn) {
+      submitBtn.style.display = canWrite ? 'inline-flex' : 'none';
+      submitBtn.textContent = 'Actualizar Datos';
+    }
+
+    // Habilitar o deshabilitar inputs
+    const form = $('#form-patient');
+    if (form) {
+      form.querySelectorAll('input, select, textarea').forEach(el => {
+        el.disabled = !canWrite;
+      });
+    }
 
     this.openDialog('modal-patient-form');
   },

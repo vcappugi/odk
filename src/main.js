@@ -17,6 +17,7 @@ import './assets/styles/app.css';
 // Servicios y configuración
 import { platformService } from './services/platformService.js';
 import { checkConnection } from './services/supabaseClient.js';
+import { permissionService } from './services/permissionService.js';
 import { env } from './config/env.js';
 import { $ } from './utils/dom.js';
 
@@ -49,6 +50,9 @@ async function bootstrapApp() {
 
   // 4. Configurar selector de tema claro / oscuro (persistente)
   setupTheme();
+
+  // 4b. Inicializar servicio de permisos según roles_permision
+  await permissionService.init();
 
   // 5. Inicializar controlador de autenticación (Login & Registro)
   authController.init();

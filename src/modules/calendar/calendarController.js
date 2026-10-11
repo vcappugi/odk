@@ -6,6 +6,8 @@ import { calendarView } from './calendarView.js';
 import { citaModel } from '../cita/citaModel.js';
 import { citaController } from '../cita/citaController.js';
 import { consultorioModel } from '../consultorio/consultorioModel.js';
+import { permissionService } from '../../services/permissionService.js';
+import { notificationService } from '../../services/notificationService.js';
 import { $, $$ } from '../../utils/dom.js';
 
 let currentDate = new Date();
@@ -120,6 +122,10 @@ export const calendarController = {
       const addTrigger = e.target.closest('[data-action="add-cita"], .clickable-empty-slot, .month-cell-empty-hint');
       if (addTrigger) {
         e.stopPropagation();
+        if (!permissionService.canWrite('modal-cita')) {
+          notificationService.warning('Tu rol no tiene permiso para agendar citas.');
+          return;
+        }
         const fecha = addTrigger.getAttribute('data-date');
         const horaDesde = addTrigger.getAttribute('data-time') || '09:00';
         const horaHasta = addTrigger.getAttribute('data-time-end') || '10:00';
@@ -132,6 +138,11 @@ export const calendarController = {
       if (dayCell) {
         // Si el clic fue en el número de día, ya fue manejado por view-day
         if (e.target.closest('[data-action="view-day"]')) return;
+
+        if (!permissionService.canWrite('modal-cita')) {
+          notificationService.warning('Tu rol no tiene permiso para agendar citas.');
+          return;
+        }
 
         const dateStr = dayCell.getAttribute('data-date');
         if (dateStr) {
@@ -163,6 +174,19 @@ export const calendarController = {
    * Cambia el modo de visualización (month, week, day)
    */
   switchView(newMode) {
+    if (newMode === 'month' && !permissionService.canRead('cal-month')) {
+      notificationService.warning('Tu rol no tiene permiso para consultar la vista mensual.');
+      return;
+    }
+    if (newMode === 'week' && !permissionService.canRead('cal-week')) {
+      notificationService.warning('Tu rol no tiene permiso para consultar la vista semanal.');
+      return;
+    }
+    if (newMode === 'day' && !permissionService.canRead('cal-day')) {
+      notificationService.warning('Tu rol no tiene permiso para consultar la vista diaria.');
+      return;
+    }
+
     viewMode = newMode;
 
     // Actualizar botones de vista

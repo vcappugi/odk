@@ -6,6 +6,7 @@ import { authModel } from './authModel.js';
 import { consultorioModel } from '../consultorio/consultorioModel.js';
 import { notificationService } from '../../services/notificationService.js';
 import { adminController } from '../admin/adminController.js';
+import { permissionService } from '../../services/permissionService.js';
 import { $, $$ } from '../../utils/dom.js';
 
 export const authController = {
@@ -420,6 +421,11 @@ export const authController = {
           </button>
         </div>
       `;
+    }
+
+    // Actualizar visibilidad y controles según permisología del rol (roles_permision)
+    if (permissionService && typeof permissionService.applyUIPermissions === 'function') {
+      permissionService.applyUIPermissions();
     }
 
     // Actualizar visibilidad de botón Configuración (solo para rol admin en user_roles)

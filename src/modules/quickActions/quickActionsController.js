@@ -6,6 +6,7 @@
 import { getSupabase } from '../../services/supabaseClient.js';
 import { consultorioModel } from '../consultorio/consultorioModel.js';
 import { notificationService } from '../../services/notificationService.js';
+import { permissionService } from '../../services/permissionService.js';
 import { $ } from '../../utils/dom.js';
 
 export const quickActionsController = {
@@ -21,8 +22,16 @@ export const quickActionsController = {
       } else if (e.target.closest('#btn-quick-doctor')) {
         this.openModal('modal-quick-doctor');
       } else if (e.target.closest('#btn-quick-history')) {
+        if (!permissionService.canRead('modal-quick-history')) {
+          notificationService.warning('Tu rol no tiene permiso para consultar el historial clínico.');
+          return;
+        }
         this.openModal('modal-quick-history');
       } else if (e.target.closest('#btn-quick-reports')) {
+        if (!permissionService.canRead('modal-quick-reports')) {
+          notificationService.warning('Tu rol no tiene permiso para consultar reportes y métricas.');
+          return;
+        }
         this.openModal('modal-quick-reports');
       } else if (e.target.closest('.btn-close-modal')) {
         const dialog = e.target.closest('dialog');

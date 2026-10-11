@@ -9,6 +9,7 @@ import { patientController } from '../patients/patientController.js';
 import { adminModel } from '../admin/adminModel.js';
 import { consultorioModel } from '../consultorio/consultorioModel.js';
 import { notificationService } from '../../services/notificationService.js';
+import { permissionService } from '../../services/permissionService.js';
 import { $ } from '../../utils/dom.js';
 
 export const citaController = {
@@ -77,14 +78,27 @@ export const citaController = {
     const form = $('#form-cita');
     if (!dialog || !form) return;
 
+    // Verificar permiso de escritura para el objeto modal-cita
+    if (!permissionService.canWrite('modal-cita')) {
+      notificationService.warning('Tu rol no tiene permiso para agendar o registrar citas odontológicas.');
+      return;
+    }
+
     this.activeCitaId = null;
     form.reset();
+
+    // Habilitar campos
+    form.querySelectorAll('input, select, textarea').forEach(el => el.disabled = false);
 
     $('#cita-id').value = '';
     $('#modal-cita-title').textContent = '📅 Agendar Cita Odontológica';
     $('#modal-cita-subtitle').textContent = 'Seleccione el paciente y horario de la cita';
     $('#btn-delete-cita').style.display = 'none';
-    $('#btn-submit-cita').textContent = '💾 Agendar Cita';
+    const submitBtn = $('#btn-submit-cita');
+    if (submitBtn) {
+      submitBtn.style.display = 'inline-flex';
+      submitBtn.textContent = '💾 Agendar Cita';
+    }
 
     // Cargar listas desplegables
     await this.populateSelects();
@@ -106,14 +120,36 @@ export const citaController = {
     const form = $('#form-cita');
     if (!dialog || !form) return;
 
+    // Verificar permiso de lectura
+    if (!permissionService.canRead('modal-cita')) {
+      notificationService.warning('Tu rol no tiene permiso para consultar citas odontológicas.');
+      return;
+    }
+
+    const canWrite = permissionService.canWrite('modal-cita');
+
     this.activeCitaId = citaId;
     form.reset();
 
     $('#cita-id').value = citaId;
-    $('#modal-cita-title').textContent = '✏️ Modificar Cita Odontológica';
-    $('#modal-cita-subtitle').textContent = 'Puede cambiar la fecha, la hora o eliminar esta cita';
-    $('#btn-delete-cita').style.display = 'inline-flex';
-    $('#btn-submit-cita').textContent = '💾 Actualizar Cita';
+    $('#modal-cita-title').textContent = canWrite ? '✏️ Modificar Cita Odontológica' : '👁️ Consulta de Cita Odontológica';
+    $('#modal-cita-subtitle').textContent = canWrite 
+      ? 'Puede cambiar la fecha, la hora o eliminar esta cita' 
+      : 'Modo Solo Lectura (Sin permisos de modificación para este rol)';
+
+    const delBtn = $('#btn-delete-cita');
+    if (delBtn) delBtn.style.display = canWrite ? 'inline-flex' : 'none';
+
+    const submitBtn = $('#btn-submit-cita');
+    if (submitBtn) {
+      submitBtn.style.display = canWrite ? 'inline-flex' : 'none';
+      submitBtn.textContent = '💾 Actualizar Cita';
+    }
+
+    // Deshabilitar o habilitar campos según permiso de escritura
+    form.querySelectorAll('input, select, textarea').forEach(el => {
+      el.disabled = !canWrite;
+    });
 
     try {
       const cita = await citaModel.getById(citaId);
