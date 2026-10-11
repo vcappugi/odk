@@ -286,9 +286,11 @@ export function renderAdminConfigModal() {
                 <div class="field">
                   <label for="admin-user-rol" class="label">Rol en el Sistema *</label>
                   <select id="admin-user-rol" class="input select" required>
-                    <option value="usuario">👤 Usuario Estándar (Acceso clínico normal)</option>
-                    <option value="admin">🛡️ Administrador (Acceso total + Configuración)</option>
+                    <option value="">Cargando roles de la base de datos...</option>
                   </select>
+                  <small style="opacity: 0.7; font-size: 0.7rem; display: block; margin-top: 0.2rem;">
+                    Roles registrados en la tabla <code>roles</code> de Supabase.
+                  </small>
                 </div>
               </div>
 
@@ -327,7 +329,7 @@ export function renderAdminConfigModal() {
                   <tr style="border-bottom: 1px solid rgba(125,125,125,0.2);">
                     <th style="padding: 0.65rem 0.85rem; text-align: left; font-size: 0.8rem;">Usuario</th>
                     <th style="padding: 0.65rem 0.85rem; text-align: left; font-size: 0.8rem;">Contacto</th>
-                    <th style="padding: 0.65rem 0.85rem; text-align: center; font-size: 0.8rem;">Rol en user_roles</th>
+                    <th style="padding: 0.65rem 0.85rem; text-align: center; font-size: 0.8rem;">Rol Asignado</th>
                     <th style="padding: 0.65rem 0.85rem; text-align: center; font-size: 0.8rem;">Estado</th>
                     <th style="padding: 0.65rem 0.85rem; text-align: right; font-size: 0.8rem;">Acciones</th>
                   </tr>
@@ -343,7 +345,7 @@ export function renderAdminConfigModal() {
             </div>
 
             <div class="box admin-hint-box" data-border style="padding: 0.65rem 0.85rem; font-size: 0.78rem; opacity: 0.85;">
-              ℹ️ <strong>Gestión Centralizada:</strong> Al crear o modificar un usuario con rol "admin", el sistema sincroniza automáticamente su registro con <code>role_id = 1</code> en la tabla <code>user_roles</code> de Supabase para otorgar acceso al menú de Configuración.
+              ℹ️ <strong>Roles Centralizados:</strong> Las opciones de rol se cargan directamente de la tabla <code>roles</code>. Al asignar un rol a un usuario, el sistema sincroniza su registro en <code>user_roles</code> para asociar sus permisos.
             </div>
           </section>
 

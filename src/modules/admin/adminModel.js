@@ -249,9 +249,15 @@ export const adminModel = {
           return rName === 'admin' || ur.role_id === 1;
         }) || u.rol === 'admin';
 
+        const activeUR = assigned[0];
+        const roleName = activeUR?.roles?.nombre || u.rol || (isAdmin ? 'admin' : 'user');
+        const roleId = activeUR?.role_id || (isAdmin ? 1 : null);
+
         return {
           ...u,
           isAdmin,
+          role_id: roleId,
+          role_name: roleName,
           assignedRoles: assigned
         };
       });
@@ -262,66 +268,129 @@ export const adminModel = {
   },
 
   /**
-   * Asigna o remueve el rol 'admin' de un usuario en la tabla 'user_roles'
+   * Asigna un rol específico a un usuario en la tabla 'user_roles' y sincroniza 'usuario.rol'
    * @param {number} userId
-   * @param {boolean} makeAdmin
+   * @param {number} roleId
    */
-  async setAdminRole(userId, makeAdmin) {
+  async assignUserRole(userId, roleId) {
     const supabase = getSupabase();
     if (!supabase) throw new Error('Cliente Supabase no disponible.');
 
-    // 1. Buscar si ya existe registro en user_roles para role_id = 1
+    const numRoleId = Number(roleId);
+    if (!numRoleId) return false;
+
+    // 1. Obtener nombre del rol
+    const { data: roleData } = await supabase
+      .from('roles')
+      .select('id, nombre')
+      .eq('id', numRoleId)
+      .maybeSingle();
+
+    const roleName = roleData?.nombre || 'usuario';
+
+    // 2. Gestionar asignación en user_roles
     const { data: existingRoles, error: searchError } = await supabase
       .from('user_roles')
-      .select('id, activo')
-      .eq('user_id', userId)
-      .eq('role_id', 1);
+      .select('id, role_id, activo')
+      .eq('user_id', userId);
 
     if (searchError) {
       console.warn('[AdminModel] Error buscando en user_roles:', searchError);
     }
 
     if (existingRoles && existingRoles.length > 0) {
-      // Actualizar el estado activo
-      const recordId = existingRoles[0].id;
-      const { error: updateError } = await supabase
-        .from('user_roles')
-        .update({ activo: Boolean(makeAdmin) })
-        .eq('id', recordId);
-
-      if (updateError) {
-        throw new Error(`Error actualizando user_roles: ${updateError.message}`);
+      let matchedExisting = false;
+      for (const ur of existingRoles) {
+        if (ur.role_id === numRoleId) {
+          matchedExisting = true;
+          await supabase
+            .from('user_roles')
+            .update({ activo: true })
+            .eq('id', ur.id);
+        } else {
+          // Desactivar otros roles anteriores
+          await supabase
+            .from('user_roles')
+            .update({ activo: false })
+            .eq('id', ur.id);
+        }
       }
-    } else if (makeAdmin) {
-      // Insertar nuevo registro en user_roles
-      const { error: insertError } = await supabase
+
+      if (!matchedExisting) {
+        await supabase
+          .from('user_roles')
+          .insert([{
+            user_id: userId,
+            role_id: numRoleId,
+            activo: true
+          }]);
+      }
+    } else {
+      await supabase
         .from('user_roles')
         .insert([{
           user_id: userId,
-          role_id: 1, // Rol admin
+          role_id: numRoleId,
           activo: true
         }]);
-
-      if (insertError) {
-        throw new Error(`Error asignando rol en user_roles: ${insertError.message}`);
-      }
     }
 
-    // 2. Sincronizar columna 'rol' en la tabla 'usuario' para coherencia
+    // 3. Sincronizar columna 'rol' en tabla 'usuario'
     try {
       await supabase
         .from('usuario')
-        .update({ rol: makeAdmin ? 'admin' : 'usuario' })
+        .update({ rol: roleName })
         .eq('id', userId);
     } catch (err) {
-      console.warn('[AdminModel] Aviso actualizando rol en usuario:', err);
+      console.warn('[AdminModel] Error sincronizando rol en usuario:', err);
     }
 
     return true;
   },
 
   /**
-   * Obtiene un usuario específico por su ID
+   * Asigna o remueve el rol 'admin' de un usuario en la tabla 'user_roles'
+   * @param {number} userId
+   * @param {boolean} makeAdmin
+   */
+  async setAdminRole(userId, makeAdmin) {
+    if (makeAdmin) {
+      return this.assignUserRole(userId, 1);
+    }
+
+    const supabase = getSupabase();
+    if (!supabase) throw new Error('Cliente Supabase no disponible.');
+
+    // Desactivar rol admin (role_id: 1)
+    try {
+      await supabase
+        .from('user_roles')
+        .update({ activo: false })
+        .eq('user_id', userId)
+        .eq('role_id', 1);
+    } catch (err) {
+      console.warn('[AdminModel] Error desactivando admin en user_roles:', err);
+    }
+
+    // Buscar rol alternativo (ej. id 2 'user' o primer rol no admin)
+    try {
+      const { data: defaultRoles } = await supabase
+        .from('roles')
+        .select('id, nombre')
+        .neq('id', 1)
+        .eq('activo', true)
+        .order('id', { ascending: true })
+        .limit(1);
+
+      const fallbackId = defaultRoles?.[0]?.id || 2;
+      return this.assignUserRole(userId, fallbackId);
+    } catch (err) {
+      return this.assignUserRole(userId, 2);
+    }
+  },
+
+  /**
+   * Obtiene un usuario específico por su ID con su rol asignado en user_roles
    * @param {number} userId
    */
   async getUserById(userId) {
@@ -339,14 +408,34 @@ export const adminModel = {
       throw error;
     }
 
-    return data;
+    // Consultar rol asignado en user_roles
+    try {
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('id, role_id, activo, roles ( id, nombre, tipo, activo )')
+        .eq('user_id', userId)
+        .eq('activo', true);
+
+      const activeUR = userRoles?.[0];
+      return {
+        ...data,
+        role_id: activeUR?.role_id || null,
+        role_name: activeUR?.roles?.nombre || data.rol || null
+      };
+    } catch (rErr) {
+      return {
+        ...data,
+        role_id: null,
+        role_name: data.rol
+      };
+    }
   },
 
   /**
-   * Registra un nuevo usuario en la tabla 'usuario'
+   * Registra un nuevo usuario en la tabla 'usuario' y asigna su rol en 'user_roles'
    * @param {Object} userData
    */
-  async createUser({ nombre, mail, clave, ci, telefono, rol = 'usuario', activo = true }) {
+  async createUser({ nombre, mail, clave, ci, telefono, rol = 'user', role_id = null, activo = true }) {
     const supabase = getSupabase();
     if (!supabase) throw new Error('Cliente Supabase no disponible.');
 
@@ -384,7 +473,28 @@ export const adminModel = {
     const salt = bcrypt.genSaltSync(10);
     const hashedClave = bcrypt.hashSync(clave.trim(), salt);
 
-    // 3. Insertar usuario en la tabla 'usuario'
+    // 3. Resolver rol e ID de rol
+    let resolvedRoleId = role_id ? Number(role_id) : null;
+    let resolvedRoleName = rol || 'user';
+
+    if (!resolvedRoleId) {
+      try {
+        const { data: matchedRoles } = await supabase
+          .from('roles')
+          .select('id, nombre')
+          .or(`nombre.ilike.${resolvedRoleName},tipo.ilike.${resolvedRoleName}`)
+          .limit(1);
+
+        if (matchedRoles && matchedRoles.length > 0) {
+          resolvedRoleId = matchedRoles[0].id;
+          resolvedRoleName = matchedRoles[0].nombre;
+        }
+      } catch (err) {
+        console.warn('[AdminModel] Error resolviendo rol:', err);
+      }
+    }
+
+    // 4. Insertar usuario en la tabla 'usuario'
     const { data, error } = await supabase
       .from('usuario')
       .insert([{
@@ -393,7 +503,7 @@ export const adminModel = {
         clave: hashedClave,
         ci: cleanCi,
         telefono: telefono?.trim() || null,
-        rol: rol || 'usuario',
+        rol: resolvedRoleName,
         activo: Boolean(activo)
       }])
       .select();
@@ -405,12 +515,12 @@ export const adminModel = {
 
     const newUser = data?.[0];
 
-    // 4. Si el rol es 'admin', asignar en 'user_roles'
-    if (newUser?.id && rol === 'admin') {
+    // 5. Asignar rol en la tabla 'user_roles'
+    if (newUser?.id && resolvedRoleId) {
       try {
-        await this.setAdminRole(newUser.id, true);
+        await this.assignUserRole(newUser.id, resolvedRoleId);
       } catch (rErr) {
-        console.warn('[AdminModel] Error asignando admin role a nuevo usuario:', rErr);
+        console.warn('[AdminModel] Error asignando rol a nuevo usuario en user_roles:', rErr);
       }
     }
 
@@ -418,11 +528,11 @@ export const adminModel = {
   },
 
   /**
-   * Modifica un usuario existente
+   * Modifica un usuario existente y sincroniza su rol en 'user_roles'
    * @param {number} userId
    * @param {Object} userData
    */
-  async updateUser(userId, { nombre, mail, clave, ci, telefono, rol = 'usuario', activo = true }) {
+  async updateUser(userId, { nombre, mail, clave, ci, telefono, rol = 'user', role_id = null, activo = true }) {
     const supabase = getSupabase();
     if (!supabase) throw new Error('Cliente Supabase no disponible.');
 
@@ -433,13 +543,34 @@ export const adminModel = {
     const cleanMail = mail.toLowerCase().trim();
     const cleanCi = ci?.trim() || null;
 
-    // 1. Preparar campos para actualizar
+    // 1. Resolver rol e ID de rol
+    let resolvedRoleId = role_id ? Number(role_id) : null;
+    let resolvedRoleName = rol || 'user';
+
+    if (!resolvedRoleId) {
+      try {
+        const { data: matchedRoles } = await supabase
+          .from('roles')
+          .select('id, nombre')
+          .or(`nombre.ilike.${resolvedRoleName},tipo.ilike.${resolvedRoleName}`)
+          .limit(1);
+
+        if (matchedRoles && matchedRoles.length > 0) {
+          resolvedRoleId = matchedRoles[0].id;
+          resolvedRoleName = matchedRoles[0].nombre;
+        }
+      } catch (err) {
+        console.warn('[AdminModel] Error resolviendo rol:', err);
+      }
+    }
+
+    // 2. Preparar campos para actualizar en 'usuario'
     const payload = {
       nombre: nombre.trim(),
       mail: cleanMail,
       ci: cleanCi,
       telefono: telefono?.trim() || null,
-      rol: rol || 'usuario',
+      rol: resolvedRoleName,
       activo: Boolean(activo)
     };
 
@@ -460,11 +591,13 @@ export const adminModel = {
       throw new Error(`Error actualizando usuario: ${error.message}`);
     }
 
-    // 2. Sincronizar en la tabla 'user_roles'
-    try {
-      await this.setAdminRole(userId, rol === 'admin');
-    } catch (rErr) {
-      console.warn('[AdminModel] Error sincronizando rol en user_roles:', rErr);
+    // 3. Sincronizar en la tabla 'user_roles'
+    if (resolvedRoleId) {
+      try {
+        await this.assignUserRole(userId, resolvedRoleId);
+      } catch (rErr) {
+        console.warn('[AdminModel] Error sincronizando rol en user_roles:', rErr);
+      }
     }
 
     return data?.[0];

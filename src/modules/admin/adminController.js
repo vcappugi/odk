@@ -357,7 +357,10 @@ export const adminController = {
     } else if (section === 'doctor') {
       await this.loadDoctoresSection();
     } else if (section === 'users') {
-      await this.loadUsersTable();
+      await Promise.all([
+        this.loadRolesForUserSelect(),
+        this.loadUsersTable()
+      ]);
     } else if (section === 'roles') {
       await this.loadRolesSection();
     }
@@ -579,6 +582,72 @@ export const adminController = {
   },
 
   /**
+   * Carga dinámicamente las opciones de roles desde la tabla 'roles' de Supabase
+   * en el selector del formulario de usuarios (#admin-user-rol)
+   * @param {number|string|null} selectedValue
+   */
+  async loadRolesForUserSelect(selectedValue = null) {
+    const select = $('#admin-user-rol');
+    if (!select) return;
+
+    try {
+      const roles = await adminModel.getRoles();
+
+      if (!roles || roles.length === 0) {
+        select.innerHTML = '<option value="">(No hay roles registrados en la tabla roles)</option>';
+        return;
+      }
+
+      // Ordenar: roles activos primero
+      const sortedRoles = [...roles].sort((a, b) => {
+        if (a.activo === b.activo) return a.id - b.id;
+        return a.activo ? -1 : 1;
+      });
+
+      select.innerHTML = sortedRoles.map(r => {
+        const icon = (r.nombre?.toLowerCase() === 'admin' || r.id === 1) ? '🛡️' : '👤';
+        const desc = r.tipo ? ` (${r.tipo})` : '';
+        const inactive = !r.activo ? ' - Inactivo' : '';
+        return `
+          <option value="${r.id}" data-role-name="${r.nombre}" ${!r.activo ? 'disabled' : ''}>
+            ${icon} ${r.nombre}${desc}${inactive}
+          </option>
+        `;
+      }).join('');
+
+      // Determinar qué opción preseleccionar
+      if (selectedValue !== null && selectedValue !== undefined && selectedValue !== '') {
+        const strVal = String(selectedValue).toLowerCase().trim();
+        let matched = sortedRoles.find(r => String(r.id) === strVal);
+        if (!matched) {
+          matched = sortedRoles.find(r => 
+            r.nombre?.toLowerCase() === strVal ||
+            (strVal === 'usuario' && r.nombre?.toLowerCase() === 'user') ||
+            (strVal === 'user' && r.nombre?.toLowerCase() === 'usuario')
+          );
+        }
+        if (matched) {
+          select.value = String(matched.id);
+        }
+      } else {
+        // Por defecto, preseleccionar rol 'user' o primer rol no admin activo
+        const defaultRole = sortedRoles.find(r => r.activo && r.id !== 1 && (r.nombre === 'user' || r.nombre === 'usuario')) ||
+                            sortedRoles.find(r => r.activo && r.id !== 1) ||
+                            sortedRoles[0];
+        if (defaultRole) {
+          select.value = String(defaultRole.id);
+        }
+      }
+    } catch (err) {
+      console.warn('[AdminController] Error al cargar roles en selector de usuario:', err);
+      select.innerHTML = `
+        <option value="1" data-role-name="admin">🛡️ admin (Administrador)</option>
+        <option value="2" data-role-name="user">👤 user (Usuario Estándar)</option>
+      `;
+    }
+  },
+
+  /**
    * Carga la tabla de usuarios con sus roles en user_roles
    */
   async loadUsersTable(searchTerm = '') {
@@ -637,11 +706,11 @@ export const adminController = {
             <td style="padding: 0.65rem 0.85rem; text-align: center;">
               ${isAdmin ? `
                 <span class="badge" data-paint="warning" style="font-weight: 700;">
-                  🛡️ admin
+                  🛡️ ${u.role_name || 'admin'}
                 </span>
               ` : `
-                <span class="badge" data-variant="ghost" style="opacity: 0.8;">
-                  👤 usuario
+                <span class="badge" data-variant="ghost" style="opacity: 0.9; font-weight: 600;">
+                  👤 ${u.role_name || 'usuario'}
                 </span>
               `}
             </td>
@@ -722,7 +791,9 @@ export const adminController = {
     const mail = emailInput?.value?.trim();
     const telefono = phoneInput?.value?.trim();
     const clave = passwordInput?.value?.trim();
-    const rol = rolSelect?.value || 'usuario';
+    const roleId = Number(rolSelect?.value) || null;
+    const selectedOption = rolSelect?.selectedOptions?.[0];
+    const roleName = selectedOption?.getAttribute('data-role-name') || rolSelect?.value || 'user';
     const activo = activeCheck ? activeCheck.checked : true;
 
     if (!nombre || !ci || !mail) {
@@ -755,7 +826,8 @@ export const adminController = {
           mail,
           telefono,
           clave,
-          rol,
+          rol: roleName,
+          role_id: roleId,
           activo
         });
         notificationService.success(`Usuario "${nombre}" actualizado correctamente.`);
@@ -767,7 +839,8 @@ export const adminController = {
           mail,
           telefono,
           clave,
-          rol,
+          rol: roleName,
+          role_id: roleId,
           activo
         });
         notificationService.success(`Usuario "${nombre}" registrado con éxito.`);
@@ -807,8 +880,8 @@ export const adminController = {
       $('#admin-user-pass-required').style.display = 'none';
       $('#admin-user-pass-help').textContent = 'Dejar vacío para conservar la contraseña actual.';
 
-      const rolSelect = $('#admin-user-rol');
-      if (rolSelect) rolSelect.value = user.rol || 'usuario';
+      // Cargar roles y seleccionar el rol del usuario
+      await this.loadRolesForUserSelect(user.role_id || user.rol);
 
       const activeCheck = $('#admin-user-active');
       if (activeCheck) activeCheck.checked = Boolean(user.activo !== false);
@@ -847,6 +920,9 @@ export const adminController = {
 
     const activeCheck = $('#admin-user-active');
     if (activeCheck) activeCheck.checked = true;
+
+    // Restablecer selector de roles
+    this.loadRolesForUserSelect();
   },
 
   /**
@@ -871,6 +947,7 @@ export const adminController = {
       await adminModel.setAdminRole(userId, makeAdmin);
       notificationService.success(makeAdmin ? 'Rol de administrador asignado en user_roles.' : 'Rol de administrador removido.');
       await this.loadUsersTable();
+      await this.loadRolesForUserSelect();
       await this.updateVisibility();
     } catch (err) {
       notificationService.error(err.message || 'Error al actualizar rol en user_roles.');
@@ -1030,6 +1107,7 @@ export const adminController = {
 
       this.resetRoleForm();
       await this.loadRolesSection();
+      this.loadRolesForUserSelect();
     } catch (err) {
       notificationService.error(err.message || 'Error al guardar rol.');
     } finally {
@@ -1096,6 +1174,7 @@ export const adminController = {
       await adminModel.deleteRole(roleId);
       notificationService.success(`Rol "${roleName}" eliminado correctamente.`);
       await this.loadRolesSection();
+      this.loadRolesForUserSelect();
 
       // Si el panel de permisos activo pertenecía a este rol, cerrarlo
       if (this.activePermissionsRoleId === Number(roleId)) {
