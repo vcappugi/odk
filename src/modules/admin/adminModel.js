@@ -506,5 +506,29 @@ export const adminModel = {
     }
 
     return true;
+  },
+
+  /**
+   * Obtiene la lista de todos los objetos registrados (Vistas y CRUDs) en la tabla 'objetos'
+   */
+  async getObjetos() {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from('objetos')
+        .select('*')
+        .order('id', { ascending: true });
+
+      if (error) {
+        console.warn('[AdminModel] Error obteniendo objetos:', error);
+        return [];
+      }
+      return data || [];
+    } catch (err) {
+      console.warn('[AdminModel] Error en getObjetos:', err);
+      return [];
+    }
   }
 };
