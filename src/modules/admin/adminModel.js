@@ -530,5 +530,290 @@ export const adminModel = {
       console.warn('[AdminModel] Error en getObjetos:', err);
       return [];
     }
+  },
+
+  /**
+   * Obtiene la lista de roles registrados con conteo de permisos activos
+   */
+  async getRoles() {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
+    try {
+      // 1. Obtener roles
+      const { data: roles, error: rolesError } = await supabase
+        .from('roles')
+        .select('*')
+        .order('id', { ascending: true });
+
+      if (rolesError) {
+        console.warn('[AdminModel] Error cargando roles:', rolesError);
+        return [];
+      }
+
+      // 2. Obtener conteo de permisos asignados en roles_permision
+      const { data: perms, error: permsError } = await supabase
+        .from('roles_permision')
+        .select('id, rol_id, activo, leer, escribir');
+
+      if (permsError) {
+        console.warn('[AdminModel] Error cargando roles_permision:', permsError);
+      }
+
+      return (roles || []).map(r => {
+        const rolePerms = (perms || []).filter(p => p.rol_id === r.id && p.activo === true);
+        return {
+          ...r,
+          totalPermisos: rolePerms.length,
+          permsLeer: rolePerms.filter(p => p.leer === true).length,
+          permsEscribir: rolePerms.filter(p => p.escribir === true).length
+        };
+      });
+    } catch (err) {
+      console.warn('[AdminModel] Error en getRoles:', err);
+      return [];
+    }
+  },
+
+  /**
+   * Obtiene un rol por su ID
+   * @param {number} roleId
+   */
+  async getRoleById(roleId) {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+      .from('roles')
+      .select('*')
+      .eq('id', roleId)
+      .single();
+
+    if (error) {
+      console.error(`[AdminModel] Error obteniendo rol ${roleId}:`, error);
+      throw error;
+    }
+
+    return data;
+  },
+
+  /**
+   * Crea un nuevo rol en la tabla 'roles'
+   * @param {Object} roleData
+   */
+  async createRole({ nombre, tipo, activo = true }) {
+    const supabase = getSupabase();
+    if (!supabase) throw new Error('Cliente Supabase no disponible.');
+
+    if (!nombre || !tipo) {
+      throw new Error('El nombre del rol y el tipo/descripción son obligatorios.');
+    }
+
+    const cleanNombre = nombre.toLowerCase().trim();
+    const cleanTipo = tipo.trim();
+
+    // Validar nombre duplicado
+    const { data: existing } = await supabase
+      .from('roles')
+      .select('id')
+      .eq('nombre', cleanNombre);
+
+    if (existing && existing.length > 0) {
+      throw new Error(`Ya existe un rol con el nombre "${cleanNombre}".`);
+    }
+
+    const { data, error } = await supabase
+      .from('roles')
+      .insert([{
+        nombre: cleanNombre,
+        tipo: cleanTipo,
+        activo: Boolean(activo)
+      }])
+      .select();
+
+    if (error) {
+      console.error('[AdminModel] Error creando rol:', error);
+      throw new Error(`Error creando rol: ${error.message}`);
+    }
+
+    return data?.[0];
+  },
+
+  /**
+   * Actualiza un rol existente
+   * @param {number} roleId
+   * @param {Object} roleData
+   */
+  async updateRole(roleId, { nombre, tipo, activo = true }) {
+    const supabase = getSupabase();
+    if (!supabase) throw new Error('Cliente Supabase no disponible.');
+
+    if (!nombre || !tipo) {
+      throw new Error('El nombre del rol y el tipo/descripción son obligatorios.');
+    }
+
+    const cleanNombre = nombre.toLowerCase().trim();
+    const cleanTipo = tipo.trim();
+
+    const { data, error } = await supabase
+      .from('roles')
+      .update({
+        nombre: cleanNombre,
+        tipo: cleanTipo,
+        activo: Boolean(activo)
+      })
+      .eq('id', roleId)
+      .select();
+
+    if (error) {
+      console.error(`[AdminModel] Error actualizando rol ${roleId}:`, error);
+      throw new Error(`Error actualizando rol: ${error.message}`);
+    }
+
+    return data?.[0];
+  },
+
+  /**
+   * Elimina un rol por su ID
+   * @param {number} roleId
+   */
+  async deleteRole(roleId) {
+    const supabase = getSupabase();
+    if (!supabase) throw new Error('Cliente Supabase no disponible.');
+
+    if (Number(roleId) === 1) {
+      throw new Error('El rol "admin" principal del sistema está protegido y no se puede eliminar.');
+    }
+
+    // 1. Eliminar permisos asociados en roles_permision
+    try {
+      await supabase
+        .from('roles_permision')
+        .delete()
+        .eq('rol_id', roleId);
+    } catch (pErr) {
+      console.warn('[AdminModel] Aviso eliminando roles_permision:', pErr);
+    }
+
+    // 2. Eliminar referencias en user_roles
+    try {
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('role_id', roleId);
+    } catch (uErr) {
+      console.warn('[AdminModel] Aviso eliminando user_roles:', uErr);
+    }
+
+    // 3. Eliminar de la tabla roles
+    const { error } = await supabase
+      .from('roles')
+      .delete()
+      .eq('id', roleId);
+
+    if (error) {
+      console.error(`[AdminModel] Error eliminando rol ${roleId}:`, error);
+      throw new Error(`Error al eliminar rol: ${error.message}`);
+    }
+
+    return true;
+  },
+
+  /**
+   * Obtiene la matriz completa de permisos de un rol (cruce entre tabla 'objetos' y 'roles_permision')
+   * @param {number} roleId
+   */
+  async getPermissionsByRoleId(roleId) {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
+    try {
+      // 1. Obtener todos los objetos del sistema
+      const objetos = await this.getObjetos();
+
+      // 2. Obtener los permisos configurados para este rol en roles_permision
+      const { data: perms, error } = await supabase
+        .from('roles_permision')
+        .select('*')
+        .eq('rol_id', roleId);
+
+      if (error) {
+        console.warn(`[AdminModel] Error consultando roles_permision para rol ${roleId}:`, error);
+      }
+
+      const permsMap = new Map();
+      (perms || []).forEach(p => {
+        permsMap.set(p.objeto_id, p);
+      });
+
+      // Cruzar objetos con sus permisos
+      return objetos.map(obj => {
+        const assigned = permsMap.get(obj.id);
+        return {
+          objeto_id: obj.id,
+          nombre: obj.nombre,
+          id_vista: obj.id_vista,
+          plantilla: obj.plantilla,
+          descripcion: obj.descripcion,
+          perm_id: assigned ? assigned.id : null,
+          leer: assigned ? Boolean(assigned.leer) : false,
+          escribir: assigned ? Boolean(assigned.escribir) : false,
+          activo: assigned ? Boolean(assigned.activo) : false
+        };
+      });
+    } catch (err) {
+      console.warn('[AdminModel] Error en getPermissionsByRoleId:', err);
+      return [];
+    }
+  },
+
+  /**
+   * Guarda o actualiza la lista de permisos de un rol en la tabla 'roles_permision'
+   * @param {number} roleId
+   * @param {Array} permissionsList - Lista de { objeto_id, leer, escribir, activo }
+   */
+  async saveRolePermissions(roleId, permissionsList) {
+    const supabase = getSupabase();
+    if (!supabase) throw new Error('Cliente Supabase no disponible.');
+
+    if (!roleId) throw new Error('ID de rol inválido.');
+
+    // 1. Limpiar registros previos de este rol en roles_permision
+    const { error: delError } = await supabase
+      .from('roles_permision')
+      .delete()
+      .eq('rol_id', roleId);
+
+    if (delError) {
+      console.error('[AdminModel] Error limpiando permisos previos:', delError);
+      throw new Error(`Error actualizando permisos: ${delError.message}`);
+    }
+
+    // 2. Filtrar permisos que tienen al menos un permiso habilitado
+    const recordsToInsert = permissionsList
+      .filter(p => p.leer || p.escribir || p.activo)
+      .map(p => ({
+        rol_id: Number(roleId),
+        objeto_id: Number(p.objeto_id),
+        leer: Boolean(p.leer),
+        escribir: Boolean(p.escribir),
+        activo: Boolean(p.activo !== false)
+      }));
+
+    if (recordsToInsert.length === 0) {
+      return true;
+    }
+
+    // 3. Insertar registros nuevos en roles_permision
+    const { error: insertError } = await supabase
+      .from('roles_permision')
+      .insert(recordsToInsert);
+
+    if (insertError) {
+      console.error('[AdminModel] Error insertando nuevos permisos en roles_permision:', insertError);
+      throw new Error(`Error guardando permisos en roles_permision: ${insertError.message}`);
+    }
+
+    return true;
   }
 };

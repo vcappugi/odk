@@ -83,6 +83,8 @@ export const adminController = {
         this.switchSection('doctor');
       } else if (e.target.closest('#admin-nav-users') || e.target.closest('#btn-admin-open-users')) {
         this.switchSection('users');
+      } else if (e.target.closest('#admin-nav-roles') || e.target.closest('#btn-admin-open-roles')) {
+        this.switchSection('roles');
       } else if (e.target.closest('.btn-admin-back-hub')) {
         this.switchSection('hub');
       }
@@ -115,11 +117,28 @@ export const adminController = {
       });
     }
 
-    // 4c. Búsqueda en tiempo real de usuarios
+    // 4c. Envío de formulario Rol (Crear / Modificar)
+    const roleForm = $('#form-admin-role');
+    if (roleForm) {
+      roleForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await this.handleSaveRole();
+      });
+    }
+
+    // 4d. Búsqueda en tiempo real de usuarios
     const userSearchInput = $('#admin-user-search-input');
     if (userSearchInput) {
       userSearchInput.addEventListener('input', (e) => {
         this.loadUsersTable(e.target.value);
+      });
+    }
+
+    // 4e. Filtro en tiempo real de objetos en matriz de permisos
+    const permsSearchInput = $('#perms-search-objects');
+    if (permsSearchInput) {
+      permsSearchInput.addEventListener('input', (e) => {
+        this.filterPermissionsObjects(e.target.value);
       });
     }
 
@@ -179,6 +198,75 @@ export const adminController = {
         return;
       }
 
+      // --- ACCIONES DE ROLES Y PERMISOS ---
+      // Editar rol
+      const editRoleBtn = e.target.closest('.btn-edit-role-admin');
+      if (editRoleBtn) {
+        const roleId = Number(editRoleBtn.getAttribute('data-role-id'));
+        await this.handleEditRole(roleId);
+        return;
+      }
+
+      // Eliminar rol
+      const delRoleBtn = e.target.closest('.btn-del-role-admin');
+      if (delRoleBtn) {
+        const roleId = Number(delRoleBtn.getAttribute('data-role-id'));
+        const roleName = delRoleBtn.getAttribute('data-role-name');
+        if (confirm(`¿Estás seguro de eliminar el rol "${roleName}"? Se revocarán todos sus permisos en roles_permision.`)) {
+          await this.handleDeleteRole(roleId, roleName);
+        }
+        return;
+      }
+
+      // Abrir matriz de permisos para un rol
+      const permsBtn = e.target.closest('.btn-role-perms');
+      if (permsBtn) {
+        const roleId = Number(permsBtn.getAttribute('data-role-id'));
+        await this.openRolePermissions(roleId);
+        return;
+      }
+
+      // Cancelar edición de rol
+      if (e.target.closest('#btn-cancel-role-form')) {
+        this.resetRoleForm();
+        return;
+      }
+
+      // Ir a nuevo rol
+      if (e.target.closest('#btn-admin-scroll-new-role')) {
+        this.resetRoleForm();
+        $('#admin-role-name')?.focus();
+        return;
+      }
+
+      // Cerrar matriz de permisos
+      if (e.target.closest('#btn-close-perms-panel')) {
+        const panel = $('#admin-role-perms-panel');
+        if (panel) panel.style.display = 'none';
+        this.activePermissionsRoleId = null;
+        return;
+      }
+
+      // Acciones rápidas de permisos
+      if (e.target.closest('#btn-perms-grant-all')) {
+        this.setAllPermissionsState({ leer: true, escribir: true, activo: true });
+        return;
+      }
+      if (e.target.closest('#btn-perms-read-only')) {
+        this.setAllPermissionsState({ leer: true, escribir: false, activo: true });
+        return;
+      }
+      if (e.target.closest('#btn-perms-revoke-all')) {
+        this.setAllPermissionsState({ leer: false, escribir: false, activo: false });
+        return;
+      }
+
+      // Guardar permisos en roles_permision
+      if (e.target.closest('#btn-save-role-perms')) {
+        await this.handleSaveRolePermissions();
+        return;
+      }
+
       // Cambiar rol de usuario en user_roles
       const toggleRoleBtn = e.target.closest('.btn-toggle-admin-role');
       if (toggleRoleBtn) {
@@ -227,14 +315,16 @@ export const adminController = {
       hub: $('#admin-section-hub'),
       consultorio: $('#admin-section-consultorio'),
       doctor: $('#admin-section-doctor'),
-      users: $('#admin-section-users')
+      users: $('#admin-section-users'),
+      roles: $('#admin-section-roles')
     };
 
     const navButtons = {
       hub: $('#admin-nav-hub'),
       consultorio: $('#admin-nav-consultorio'),
       doctor: $('#admin-nav-doctor'),
-      users: $('#admin-nav-users')
+      users: $('#admin-nav-users'),
+      roles: $('#admin-nav-roles')
     };
 
     // Actualizar visibilidad de secciones
@@ -268,6 +358,8 @@ export const adminController = {
       await this.loadDoctoresSection();
     } else if (section === 'users') {
       await this.loadUsersTable();
+    } else if (section === 'roles') {
+      await this.loadRolesSection();
     }
   },
 
@@ -783,5 +875,420 @@ export const adminController = {
     } catch (err) {
       notificationService.error(err.message || 'Error al actualizar rol en user_roles.');
     }
+  },
+
+  // =====================================================================
+  // GESTIÓN DE ROLES (TABLA ROLES) Y PERMISOS (TABLA ROLES_PERMISION)
+  // =====================================================================
+
+  activePermissionsRoleId: null,
+
+  /**
+   * Carga la lista de roles en la tabla
+   */
+  async loadRolesSection() {
+    const tbody = $('#admin-roles-table-body');
+    const countBadge = $('#admin-roles-count-badge');
+    if (!tbody) return;
+
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="padding: 1.5rem; text-align: center; opacity: 0.7;">
+          Cargando roles desde la tabla 'roles'...
+        </td>
+      </tr>
+    `;
+
+    try {
+      const roles = await adminModel.getRoles();
+
+      if (countBadge) {
+        countBadge.textContent = `${roles.length} rol(es) registrado(s)`;
+      }
+
+      if (!roles || roles.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" style="padding: 1.5rem; text-align: center; opacity: 0.7;">
+              No hay roles registrados en la base de datos.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = roles.map(r => {
+        const isSystemAdmin = Number(r.id) === 1 || r.nombre === 'admin';
+        return `
+          <tr style="border-bottom: 1px solid rgba(125,125,125,0.15);">
+            <td style="padding: 0.65rem 0.85rem; font-family: var(--app-code-font); font-weight: 700;">
+              #${r.id}
+            </td>
+            <td style="padding: 0.65rem 0.85rem;">
+              <strong style="font-size: 0.88rem;">${r.nombre}</strong>
+              ${isSystemAdmin ? '<span class="badge" data-paint="warning" style="margin-left: 0.35rem; font-size: 0.68rem;">🛡️ Sistema</span>' : ''}
+            </td>
+            <td style="padding: 0.65rem 0.85rem; font-size: 0.82rem; opacity: 0.85;">
+              ${r.tipo || 'Sin descripción'}
+            </td>
+            <td style="padding: 0.65rem 0.85rem; text-align: center;">
+              <span class="badge" data-paint="${r.activo ? 'success' : 'danger'}">
+                ${r.activo ? 'Activo' : 'Inactivo'}
+              </span>
+            </td>
+            <td style="padding: 0.65rem 0.85rem; text-align: center;">
+              <span class="badge" data-paint="${r.totalPermisos > 0 ? 'primary' : 'neutral'}" title="${r.permsLeer} lectura, ${r.permsEscribir} escritura">
+                🔑 ${r.totalPermisos} obj (${r.permsLeer}👁️, ${r.permsEscribir}✏️)
+              </span>
+            </td>
+            <td style="padding: 0.65rem 0.85rem; text-align: right;">
+              <div class="cluster" data-gap="2xs" data-justify="end" style="align-items: center;">
+                <button 
+                  type="button" 
+                  class="button btn-role-perms" 
+                  data-role-id="${r.id}" 
+                  data-role-name="${r.nombre}" 
+                  data-size="sm" 
+                  data-paint="primary" 
+                  title="Gestionar permisos en roles_permision"
+                >
+                  🔑 Permisos
+                </button>
+                <button 
+                  type="button" 
+                  class="button btn-edit-role-admin" 
+                  data-role-id="${r.id}" 
+                  data-size="sm" 
+                  data-variant="ghost" 
+                  title="Modificar rol"
+                >
+                  ✏️
+                </button>
+                ${!isSystemAdmin ? `
+                  <button 
+                    type="button" 
+                    class="button btn-del-role-admin" 
+                    data-role-id="${r.id}" 
+                    data-role-name="${r.nombre}" 
+                    data-size="sm" 
+                    data-variant="ghost" 
+                    style="color: #ef4444;" 
+                    title="Eliminar rol"
+                  >
+                    🗑️
+                  </button>
+                ` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="padding: 1.5rem; text-align: center; color: #ef4444;">
+            Error cargando roles: ${err.message}
+          </td>
+        </tr>
+      `;
+    }
+  },
+
+  /**
+   * Guarda o actualiza un rol
+   */
+  async handleSaveRole() {
+    const id = $('#admin-role-id')?.value;
+    const nameInput = $('#admin-role-name');
+    const typeInput = $('#admin-role-type');
+    const activeCheck = $('#admin-role-active');
+    const submitBtn = $('#btn-submit-role-admin');
+
+    const nombre = nameInput?.value?.trim();
+    const tipo = typeInput?.value?.trim();
+    const activo = activeCheck ? activeCheck.checked : true;
+
+    if (!nombre || !tipo) {
+      notificationService.error('Nombre del rol y descripción son obligatorios.');
+      return;
+    }
+
+    const originalText = submitBtn ? submitBtn.textContent : '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Guardando...';
+    }
+
+    try {
+      if (id) {
+        await adminModel.updateRole(Number(id), { nombre, tipo, activo });
+        notificationService.success(`Rol "${nombre}" actualizado correctamente.`);
+      } else {
+        await adminModel.createRole({ nombre, tipo, activo });
+        notificationService.success(`Rol "${nombre}" registrado con éxito en tabla roles.`);
+      }
+
+      this.resetRoleForm();
+      await this.loadRolesSection();
+    } catch (err) {
+      notificationService.error(err.message || 'Error al guardar rol.');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    }
+  },
+
+  /**
+   * Carga los datos de un rol en el formulario para editar
+   */
+  async handleEditRole(roleId) {
+    try {
+      const role = await adminModel.getRoleById(roleId);
+      if (!role) {
+        notificationService.error('No se encontró el rol seleccionado.');
+        return;
+      }
+
+      $('#admin-role-id').value = String(role.id);
+      $('#admin-role-name').value = role.nombre || '';
+      $('#admin-role-type').value = role.tipo || '';
+
+      const activeCheck = $('#admin-role-active');
+      if (activeCheck) activeCheck.checked = Boolean(role.activo !== false);
+
+      $('#admin-role-form-title').textContent = `✏️ Modificar Rol: ${role.nombre}`;
+      $('#admin-role-form-badge').textContent = 'Modo Editar';
+      $('#admin-role-form-badge').setAttribute('data-paint', 'warning');
+      $('#btn-cancel-role-form').style.display = 'inline-flex';
+      $('#btn-submit-role-admin').textContent = '💾 Actualizar Rol';
+
+      $('#form-admin-role')?.scrollIntoView({ behavior: 'smooth' });
+    } catch (err) {
+      notificationService.error(`Error cargando rol: ${err.message}`);
+    }
+  },
+
+  /**
+   * Restablece el formulario de rol
+   */
+  resetRoleForm() {
+    const form = $('#form-admin-role');
+    if (form) form.reset();
+
+    $('#admin-role-id').value = '';
+    $('#admin-role-form-title').textContent = '➕ Registrar Nuevo Rol';
+    $('#admin-role-form-badge').textContent = 'Modo Crear';
+    $('#admin-role-form-badge').setAttribute('data-paint', 'primary');
+    $('#btn-cancel-role-form').style.display = 'none';
+    $('#btn-submit-role-admin').textContent = '💾 Guardar Rol';
+
+    const activeCheck = $('#admin-role-active');
+    if (activeCheck) activeCheck.checked = true;
+  },
+
+  /**
+   * Elimina un rol
+   */
+  async handleDeleteRole(roleId, roleName) {
+    try {
+      await adminModel.deleteRole(roleId);
+      notificationService.success(`Rol "${roleName}" eliminado correctamente.`);
+      await this.loadRolesSection();
+
+      // Si el panel de permisos activo pertenecía a este rol, cerrarlo
+      if (this.activePermissionsRoleId === Number(roleId)) {
+        const panel = $('#admin-role-perms-panel');
+        if (panel) panel.style.display = 'none';
+        this.activePermissionsRoleId = null;
+      }
+    } catch (err) {
+      notificationService.error(err.message || 'Error al eliminar rol.');
+    }
+  },
+
+  /**
+   * Abre la matriz de permisos para un rol seleccionado
+   */
+  async openRolePermissions(roleId) {
+    this.activePermissionsRoleId = Number(roleId);
+    const panel = $('#admin-role-perms-panel');
+    const titleBadge = $('#perms-active-role-name');
+    const tbody = $('#admin-perms-table-body');
+
+    if (!panel || !tbody) return;
+
+    panel.style.display = 'flex';
+    if (titleBadge) titleBadge.textContent = `Cargando...`;
+
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="4" style="padding: 1.5rem; text-align: center; opacity: 0.7;">
+          Consultando permisos en tabla 'roles_permision'...
+        </td>
+      </tr>
+    `;
+
+    panel.scrollIntoView({ behavior: 'smooth' });
+
+    try {
+      const role = await adminModel.getRoleById(roleId);
+      if (titleBadge && role) {
+        titleBadge.textContent = `${role.nombre.toUpperCase()} (#${role.id})`;
+      }
+
+      const permissions = await adminModel.getPermissionsByRoleId(roleId);
+
+      if (!permissions || permissions.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" style="padding: 1.5rem; text-align: center; opacity: 0.7;">
+              No se encontraron objetos registrados en el sistema.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = permissions.map(p => `
+        <tr class="perm-row" data-obj-id="${p.objeto_id}" data-obj-name="${p.nombre.toLowerCase()}" style="border-bottom: 1px solid rgba(125,125,125,0.12);">
+          <td style="padding: 0.5rem 0.85rem;">
+            <div class="stack" data-gap="2xs">
+              <strong style="font-size: 0.82rem;">${p.nombre}</strong>
+              <small style="opacity: 0.75; font-size: 0.72rem;">
+                <code>${p.id_vista || 'vista'}</code> | ${p.descripcion || ''}
+              </small>
+            </div>
+          </td>
+          <td style="padding: 0.5rem 0.85rem; text-align: center;">
+            <input 
+              type="checkbox" 
+              class="perm-chk-leer" 
+              data-obj-id="${p.objeto_id}" 
+              ${p.leer ? 'checked' : ''} 
+              style="width: 17px; height: 17px; cursor: pointer;"
+              title="Permiso de lectura/visualización"
+            />
+          </td>
+          <td style="padding: 0.5rem 0.85rem; text-align: center;">
+            <input 
+              type="checkbox" 
+              class="perm-chk-escribir" 
+              data-obj-id="${p.objeto_id}" 
+              ${p.escribir ? 'checked' : ''} 
+              style="width: 17px; height: 17px; cursor: pointer;"
+              title="Permiso de escritura/creación/edición"
+            />
+          </td>
+          <td style="padding: 0.5rem 0.85rem; text-align: center;">
+            <input 
+              type="checkbox" 
+              class="perm-chk-activo" 
+              data-obj-id="${p.objeto_id}" 
+              ${p.activo ? 'checked' : ''} 
+              style="width: 17px; height: 17px; cursor: pointer;"
+              title="Habilitado para este rol"
+            />
+          </td>
+        </tr>
+      `).join('');
+    } catch (err) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="4" style="padding: 1.5rem; text-align: center; color: #ef4444;">
+            Error cargando permisos: ${err.message}
+          </td>
+        </tr>
+      `;
+    }
+  },
+
+  /**
+   * Guarda los permisos configurados en la tabla 'roles_permision'
+   */
+  async handleSaveRolePermissions() {
+    if (!this.activePermissionsRoleId) {
+      notificationService.error('No hay un rol activo seleccionado.');
+      return;
+    }
+
+    const saveBtn = $('#btn-save-role-perms');
+    const originalText = saveBtn ? saveBtn.textContent : '';
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Guardando en roles_permision...';
+    }
+
+    try {
+      const rows = document.querySelectorAll('#admin-perms-table-body .perm-row');
+      const permissionsList = [];
+
+      rows.forEach(row => {
+        const objId = Number(row.getAttribute('data-obj-id'));
+        const leerChk = row.querySelector('.perm-chk-leer');
+        const escribirChk = row.querySelector('.perm-chk-escribir');
+        const activoChk = row.querySelector('.perm-chk-activo');
+
+        const leer = Boolean(leerChk && leerChk.checked);
+        const escribir = Boolean(escribirChk && escribirChk.checked);
+        let activo = Boolean(activoChk && activoChk.checked);
+
+        // Si tiene leer o escribir, auto-activar
+        if (leer || escribir) {
+          activo = true;
+        }
+
+        permissionsList.push({
+          objeto_id: objId,
+          leer,
+          escribir,
+          activo
+        });
+      });
+
+      await adminModel.saveRolePermissions(this.activePermissionsRoleId, permissionsList);
+      notificationService.success('✅ Permisos del rol guardados exitosamente en la tabla "roles_permision".');
+
+      // Actualizar listado de roles para reflejar el nuevo conteo de permisos
+      await this.loadRolesSection();
+    } catch (err) {
+      notificationService.error(`Error guardando permisos: ${err.message}`);
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
+      }
+    }
+  },
+
+  /**
+   * Establece el estado de todos los checkboxes en la matriz de permisos
+   */
+  setAllPermissionsState({ leer, escribir, activo }) {
+    const leerChks = document.querySelectorAll('#admin-perms-table-body .perm-chk-leer');
+    const escribirChks = document.querySelectorAll('#admin-perms-table-body .perm-chk-escribir');
+    const activoChks = document.querySelectorAll('#admin-perms-table-body .perm-chk-activo');
+
+    leerChks.forEach(chk => { chk.checked = Boolean(leer); });
+    escribirChks.forEach(chk => { chk.checked = Boolean(escribir); });
+    activoChks.forEach(chk => { chk.checked = Boolean(activo); });
+  },
+
+  /**
+   * Filtra los objetos mostrados en la matriz de permisos
+   */
+  filterPermissionsObjects(term) {
+    const cleanTerm = (term || '').toLowerCase().trim();
+    const rows = document.querySelectorAll('#admin-perms-table-body .perm-row');
+
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      if (!cleanTerm || text.includes(cleanTerm)) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
   }
 };
