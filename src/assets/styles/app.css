@@ -440,9 +440,10 @@ html.platform-android textarea {
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
-  padding: clamp(0.75rem, 2vw, 1.25rem);
+  padding: clamp(0.4rem, 2vw, 1.25rem);
   box-sizing: border-box;
   min-height: 100dvh;
+  overflow-x: hidden;
 }
 
 /* 1. Marco Superior Compacto */
@@ -505,12 +506,29 @@ html.platform-android textarea {
 /* 2. Sección del Calendario */
 .calendar-main-section {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .calendar-card {
   border-radius: 1rem !important;
-  padding: clamp(1rem, 2.5vw, 1.5rem) !important;
+  padding: clamp(0.75rem, 2vw, 1.5rem) !important;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06) !important;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.cal-view-container {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .calendar-toolbar {
@@ -518,16 +536,20 @@ html.platform-android textarea {
   border-bottom: 1px solid rgba(125, 125, 125, 0.16);
   flex-wrap: wrap;
   gap: 0.75rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .cal-nav-group {
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .cal-period-title {
   font-size: clamp(1.05rem, 2.5vw, 1.3rem);
   font-weight: 700;
   margin: 0;
+  min-width: 0;
 }
 
 .cal-nav-buttons .button {
@@ -545,14 +567,20 @@ html.platform-android textarea {
 /* Vista por Mes */
 .cal-month-wrapper {
   margin-top: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .cal-weekdays-row {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   text-align: center;
   gap: 6px;
   margin-bottom: 0.25rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .cal-weekday-header {
@@ -562,24 +590,39 @@ html.platform-android textarea {
   padding: 0.25rem 0;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-weekday-header .weekday-name-mini {
+  display: none;
 }
 
 .cal-month-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .cal-day-cell {
-  min-height: clamp(80px, 9vw, 115px);
+  min-height: clamp(75px, 8.5vw, 115px);
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
   border-radius: 0.55rem;
   border: 1px solid rgba(125, 125, 125, 0.16);
   background: rgba(125, 125, 125, 0.04);
-  padding: 0.4rem;
+  padding: 0.35rem 0.3rem;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 0.25rem;
+  gap: 0.2rem;
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
@@ -605,6 +648,8 @@ html.platform-android textarea {
   color: #ffffff;
   padding: 0.08rem 0.35rem;
   border-radius: 4px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .today-tag-small {
@@ -615,6 +660,7 @@ html.platform-android textarea {
   padding: 0.05rem 0.3rem;
   border-radius: 3px;
   margin-top: 0.2rem;
+  white-space: nowrap;
 }
 
 .cal-day-cell.is-other-month {
@@ -623,14 +669,28 @@ html.platform-android textarea {
   background: transparent;
 }
 
+.day-header {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  overflow: hidden;
+}
+
 .day-number {
   font-size: 0.85rem;
   font-weight: 600;
+  line-height: 1;
 }
 
 .day-content {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  flex: 1;
 }
 
 .appointment-dot {
@@ -640,18 +700,33 @@ html.platform-android textarea {
 
 /* Vista por Semana */
 .cal-week-wrapper {
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
   padding-bottom: 0.5rem;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(2, 132, 199, 0.4) transparent;
+}
+
+.cal-week-scroll-hint {
+  display: none;
 }
 
 .cal-week-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(115px, 1fr));
   gap: 8px;
-  min-width: 700px;
+  min-width: 750px;
+  box-sizing: border-box;
 }
 
 .cal-week-col {
+  scroll-snap-align: start;
   border: 1px solid rgba(125, 125, 125, 0.16);
   border-radius: 0.65rem;
   padding: 0.5rem;
@@ -661,6 +736,8 @@ html.platform-android textarea {
   flex-direction: column;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .cal-week-col:hover {
@@ -705,6 +782,8 @@ html.platform-android textarea {
   border-left-width: 3px;
   border-left-style: solid;
   transition: all 0.2s ease;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .app-time {
@@ -735,6 +814,10 @@ html.platform-android textarea {
 /* Vista por Día */
 .cal-day-wrapper {
   margin-top: 0.25rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .cal-day-banner {
@@ -742,6 +825,8 @@ html.platform-android textarea {
   border-radius: 0.65rem;
   background: rgba(2, 132, 199, 0.08);
   border: 1px solid rgba(2, 132, 199, 0.2);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .day-banner-badge {
@@ -751,15 +836,20 @@ html.platform-android textarea {
   padding: 0.25rem 0.65rem;
   background: rgba(2, 132, 199, 0.15);
   border-radius: 0.4rem;
+  line-height: 1;
 }
 
 .cal-day-timeline {
   margin-top: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .cal-hour-row {
   padding: 0.45rem 0;
   border-bottom: 1px solid rgba(125, 125, 125, 0.1);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .hour-label {
@@ -773,12 +863,17 @@ html.platform-android textarea {
 
 .hour-content {
   flex: 1;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .day-agenda-card {
   border-left: 4px solid #0284c7 !important;
   padding: 0.45rem 0.85rem !important;
   border-radius: 0.5rem !important;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .agenda-patient {
@@ -794,6 +889,228 @@ html.platform-android textarea {
   font-size: 0.78rem;
   opacity: 0.35;
   font-style: italic;
+  padding: 0.5rem 0;
+}
+
+/* =====================================================================
+   REGLAS RESPONSIVAS DEL CALENDARIO EN MÓVILES (PREVENCIÓN DE DESBORDE)
+   ===================================================================== */
+@media (max-width: 768px) {
+  .calendar-card {
+    padding: 0.65rem 0.5rem !important;
+    border-radius: 0.75rem !important;
+  }
+
+  /* Barra de herramientas móvil: dos filas ordenadas */
+  .calendar-toolbar {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.55rem;
+    padding-bottom: 0.55rem;
+  }
+
+  .cal-nav-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .cal-period-title {
+    font-size: 1rem !important;
+    text-align: right;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-left: 0.5rem;
+  }
+
+  .cal-views-selector {
+    display: flex;
+    width: 100%;
+    background: rgba(125, 125, 125, 0.08);
+    padding: 3px;
+    border-radius: 0.55rem;
+    gap: 4px;
+    box-sizing: border-box;
+  }
+
+  .cal-views-selector .button {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+    padding: 0.35rem 0.2rem !important;
+    font-size: 0.78rem !important;
+    margin: 0;
+    border-radius: 0.4rem;
+  }
+
+  /* Vista Mensual Móvil: 7 columnas estrictamente proporcionales sin desborde */
+  .cal-weekdays-row {
+    gap: 3px;
+    margin-bottom: 2px;
+  }
+
+  .cal-weekday-header {
+    font-size: 0.68rem;
+    padding: 0.15rem 0;
+  }
+
+  .cal-month-grid {
+    gap: 3px;
+  }
+
+  .cal-day-cell {
+    min-height: 56px;
+    padding: 0.2rem 0.15rem;
+    border-radius: 0.35rem;
+    gap: 0.15rem;
+  }
+
+  .day-number {
+    font-size: 0.72rem;
+    padding: 0 0.15rem;
+  }
+
+  /* En móviles ocultamos el texto 'Hoy' para no empujar la columna */
+  .today-tag {
+    display: none;
+  }
+
+  .cal-day-cell.is-today .day-number {
+    background: #0284c7;
+    color: #ffffff;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+  }
+
+  .cal-month-citas-list {
+    gap: 1px;
+  }
+
+  .cal-month-cita-chip {
+    padding: 1px 2px;
+    font-size: 0.55rem;
+    border-left-width: 2px;
+    border-radius: 2px;
+    justify-content: center;
+  }
+
+  .cal-month-cita-chip .chip-time {
+    font-size: 0.55rem;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+
+  .cal-month-cita-chip .chip-patient {
+    display: none; /* En vista mensual móvil se oculta el nombre largo para evitar desborde */
+  }
+
+  .citas-more-badge {
+    font-size: 0.52rem;
+    padding: 0 2px;
+    line-height: 1;
+    border-radius: 2px;
+    align-self: center;
+  }
+
+  .hint-plus {
+    font-size: 0.72rem;
+  }
+
+  /* Vista Semanal Móvil: Desplazamiento horizontal fluido con hint */
+  .cal-week-scroll-hint {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.7rem;
+    opacity: 0.8;
+    color: #0284c7;
+    padding: 0.25rem 0;
+    margin-bottom: 0.35rem;
+    text-align: center;
+    font-weight: 500;
+  }
+
+  .cal-week-grid {
+    min-width: 820px;
+    gap: 6px;
+  }
+
+  .cal-week-col {
+    padding: 0.4rem;
+    min-height: 180px;
+  }
+
+  /* Vista Diaria Móvil: Ajuste de horas en formato apilado */
+  .cal-day-banner {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .cal-day-banner .cluster {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .btn-add-cita-quick {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .cal-hour-row {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.3rem !important;
+    padding: 0.5rem 0;
+  }
+
+  .hour-label {
+    width: auto;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    background: rgba(2, 132, 199, 0.1);
+    color: #0284c7;
+    border-radius: 4px;
+  }
+
+  .hour-content {
+    width: 100%;
+  }
+
+  .day-agenda-card {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.35rem !important;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.5rem 0.65rem !important;
+  }
+
+  .day-agenda-card .cluster {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 420px) {
+  .cal-weekday-header .weekday-name-short {
+    display: none;
+  }
+
+  .cal-weekday-header .weekday-name-mini {
+    display: inline;
+    font-weight: 800;
+    font-size: 0.7rem;
+  }
 }
 
 /* Botón interactivo 'Sesión Activa' para cerrar sesión */

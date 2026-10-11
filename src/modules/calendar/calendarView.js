@@ -173,7 +173,12 @@ export const calendarView = {
       `;
     }
 
-    const headersHtml = DAYS_SHORT.map(d => `<div class="cal-weekday-header">${d}</div>`).join('');
+    const headersHtml = DAYS_SHORT.map((d, idx) => `
+      <div class="cal-weekday-header">
+        <span class="weekday-name-short">${d}</span>
+        <span class="weekday-name-mini">${['L', 'M', 'X', 'J', 'V', 'S', 'D'][idx]}</span>
+      </div>
+    `).join('');
 
     return `
       <div class="cal-month-wrapper stack" data-gap="xs">
@@ -235,9 +240,14 @@ export const calendarView = {
     }).join('');
 
     return `
-      <div class="cal-week-wrapper">
-        <div class="cal-week-grid">
-          ${columnsHtml}
+      <div class="cal-week-container stack" data-gap="xs">
+        <div class="cal-week-scroll-hint">
+          <span>👈 Desliza horizontalmente para ver los 7 días 👉</span>
+        </div>
+        <div class="cal-week-wrapper">
+          <div class="cal-week-grid">
+            ${columnsHtml}
+          </div>
         </div>
       </div>
     `;

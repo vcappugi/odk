@@ -223,6 +223,13 @@ export const calendarController = {
       container.innerHTML = calendarView.renderMonthView(currentDate, todayDate, cachedCitas);
     } else if (viewMode === 'week') {
       container.innerHTML = calendarView.renderWeekView(currentDate, todayDate, cachedCitas);
+      // Auto-centrar en el día de hoy si estamos en la semana actual
+      const todayCol = container.querySelector('.cal-week-col.is-today');
+      if (todayCol) {
+        requestAnimationFrame(() => {
+          todayCol.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        });
+      }
     } else if (viewMode === 'day') {
       container.innerHTML = calendarView.renderDayView(currentDate, todayDate, cachedCitas);
     }
