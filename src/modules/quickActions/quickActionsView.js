@@ -22,11 +22,6 @@ export function renderQuickActionsBar() {
             <span class="quick-btn-text">Gestionar Paciente</span>
           </button>
 
-          <!-- 2. Registrar Doctor -->
-          <button type="button" id="btn-quick-doctor" class="button btn-quick-action" data-variant="outlined" data-size="sm" title="Registrar nuevo doctor odontólogo">
-            <span class="quick-btn-icon">🩺</span>
-            <span class="quick-btn-text">Registrar Doctor</span>
-          </button>
 
           <!-- 3. Ver Historial -->
           <button type="button" id="btn-quick-history" class="button btn-quick-action" data-variant="ghost" data-size="sm" title="Ver historial clínico de pacientes">
