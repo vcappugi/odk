@@ -10,6 +10,7 @@ import { adminModel } from '../admin/adminModel.js';
 import { consultorioModel } from '../consultorio/consultorioModel.js';
 import { notificationService } from '../../services/notificationService.js';
 import { permissionService } from '../../services/permissionService.js';
+import { historialController } from '../historial/historialController.js';
 import { $ } from '../../utils/dom.js';
 
 export const citaController = {
@@ -61,6 +62,30 @@ export const citaController = {
       }
     });
 
+    // 3b. Cambio de paciente seleccionado en el select de citas -> actualizar visibilidad de botones de historial
+    document.addEventListener('change', (e) => {
+      if (e.target && e.target.id === 'cita-paciente') {
+        this.updateHistorialBtnVisibility();
+      }
+    });
+
+    // 3c. Botón para abrir el Historial Médico del paciente desde la Cita
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-cita-open-historial') || e.target.closest('#btn-cita-footer-historial')) {
+        e.preventDefault();
+        const pacienteSelect = $('#cita-paciente');
+        const pacienteId = pacienteSelect?.value;
+        if (!pacienteId) {
+          notificationService.warning('Seleccione un paciente de la lista para ver su historial médico.');
+          return;
+        }
+        const opt = pacienteSelect.options[pacienteSelect.selectedIndex];
+        const rawText = opt?.text || '';
+        const pacienteName = rawText.split('(')[0].trim() || `Paciente #${pacienteId}`;
+        historialController.openHistorial(pacienteId, pacienteName, this.activeCitaId);
+      }
+    });
+
     // 4. Cerrar modal con botón cancelar o X
     document.addEventListener('click', (e) => {
       const closeBtn = e.target.closest('#modal-cita .btn-close-modal');
@@ -102,6 +127,9 @@ export const citaController = {
 
     // Cargar listas desplegables
     await this.populateSelects();
+
+    // Actualizar visibilidad del acceso al historial
+    this.updateHistorialBtnVisibility();
 
     // Establecer fecha por defecto
     const todayStr = new Date().toISOString().split('T')[0];
@@ -160,6 +188,9 @@ export const citaController = {
 
       await this.populateSelects(cita.paciente_id, cita.doctor_id);
 
+      // Actualizar visibilidad de acceso a historial médico
+      this.updateHistorialBtnVisibility();
+
       $('#cita-fecha').value = cita.fecha || '';
       $('#cita-hora-desde').value = cita.hora_desde ? cita.hora_desde.slice(0, 5) : '09:00';
       $('#cita-hora-hasta').value = cita.hora_hasta ? cita.hora_hasta.slice(0, 5) : '10:00';
@@ -181,6 +212,20 @@ export const citaController = {
       dialog.close();
     }
     this.activeCitaId = null;
+    this.updateHistorialBtnVisibility();
+  },
+
+  /**
+   * Actualiza la visibilidad de los botones de acceso al Historial Médico
+   */
+  updateHistorialBtnVisibility() {
+    const pacienteId = $('#cita-paciente')?.value;
+    const wrap = $('#cita-patient-historial-wrap');
+    const footerBtn = $('#btn-cita-footer-historial');
+    const isVisible = Boolean(pacienteId);
+
+    if (wrap) wrap.style.display = isVisible ? 'block' : 'none';
+    if (footerBtn) footerBtn.style.display = isVisible ? 'inline-flex' : 'none';
   },
 
   /**

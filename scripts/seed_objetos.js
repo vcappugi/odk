@@ -113,6 +113,12 @@ export const SYSTEM_OBJECTS = [
     id_vista: 'admin-section-user-roles',
     plantilla: 'userRolesAdminView',
     descripcion: 'Asignación, revocación y auditoría de permisos y roles administrativos en la tabla "user_roles".'
+  },
+  {
+    nombre: 'CRUD de Historial Médico',
+    id_vista: 'modal-historial-medico',
+    plantilla: 'historialView',
+    descripcion: 'Gestión clínica completa de antecedentes, alergias, diagnósticos, evolución y tratamientos por paciente en la tabla historial_medico.'
   }
 ];
 

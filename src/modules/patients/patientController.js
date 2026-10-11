@@ -10,6 +10,7 @@ import { googleDriveService, GOOGLE_DRIVE_CONFIG } from '../../services/googleDr
 import { renderPatientTableRow, renderEmptyPatientsState } from './patientView.js';
 import { notificationService } from '../../services/notificationService.js';
 import { permissionService } from '../../services/permissionService.js';
+import { historialController } from '../historial/historialController.js';
 import { $ } from '../../utils/dom.js';
 
 export const patientController = {
@@ -70,6 +71,29 @@ export const patientController = {
         const id = deleteBtn.dataset.id;
         const name = deleteBtn.dataset.name || 'este paciente';
         this.handleDeletePatient(id, name);
+      }
+    });
+
+    // 5b. Botón abrir historial médico desde la fila del paciente
+    document.addEventListener('click', (e) => {
+      const histRowBtn = e.target.closest('.btn-patient-row-historial');
+      if (histRowBtn) {
+        const id = histRowBtn.dataset.id;
+        const name = histRowBtn.dataset.name || '';
+        historialController.openHistorial(id, name);
+      }
+    });
+
+    // 5c. Botón abrir historial médico desde el modal de edición del paciente
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-patient-open-historial')) {
+        const id = $('#patient-field-id')?.value;
+        const name = $('#patient-field-name')?.value;
+        if (id) {
+          historialController.openHistorial(id, name);
+        } else {
+          notificationService.warning('Primero debe guardar los datos del paciente para crear su historial.');
+        }
       }
     });
 
@@ -388,6 +412,10 @@ export const patientController = {
     this.updateAgeBadge('');
     this.populateConsultoriosSelect();
 
+    // En modo creación ocultar acceso a historial
+    const btnHistorial = $('#btn-patient-open-historial');
+    if (btnHistorial) btnHistorial.style.display = 'none';
+
     // Seleccionar por defecto la sede activa
     const activeConsultorio = consultorioModel.getActiveConsultorio();
     const consultorioSelect = $('#patient-field-consultorio');
@@ -468,6 +496,12 @@ export const patientController = {
       form.querySelectorAll('input, select, textarea').forEach(el => {
         el.disabled = !canWrite;
       });
+    }
+
+    // Mostrar botón de acceso al Historial Médico en modo Edición
+    const btnHistorial = $('#btn-patient-open-historial');
+    if (btnHistorial) {
+      btnHistorial.style.display = 'inline-flex';
     }
 
     this.openDialog('modal-patient-form');

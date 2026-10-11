@@ -242,9 +242,16 @@ export function renderPatientManagementModals() {
 
           </div>
 
-          <footer class="cluster modal-footer" data-justify="end" data-gap="xs" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(125, 125, 125, 0.15);">
-            <button type="button" class="button btn-close-patient-form" data-variant="ghost" data-size="sm">Cancelar</button>
-            <button type="submit" id="btn-submit-patient-form" class="button" data-paint="primary" data-size="sm">Guardar Paciente</button>
+          <footer class="cluster modal-footer" data-justify="between" data-align="center" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(125, 125, 125, 0.15);">
+            <div>
+              <button type="button" id="btn-patient-open-historial" class="button" data-variant="outlined" data-size="sm" style="display: none; border-color: var(--primary, #0ea5e9); color: var(--primary, #0ea5e9); font-weight: 600;" title="Abrir y gestionar historial médico de este paciente">
+                📋 Historial Médico
+              </button>
+            </div>
+            <div class="cluster" data-gap="xs">
+              <button type="button" class="button btn-close-patient-form" data-variant="ghost" data-size="sm">Cancelar</button>
+              <button type="submit" id="btn-submit-patient-form" class="button" data-paint="primary" data-size="sm">Guardar Paciente</button>
+            </div>
           </footer>
         </form>
 
@@ -444,6 +451,18 @@ export function renderPatientTableRow(p) {
 
       <td class="patient-actions-cell" style="text-align: center;">
         <div class="cluster" data-gap="2xs" data-justify="center">
+          <button 
+            type="button" 
+            class="button btn-patient-row-historial" 
+            data-id="${p.id}" 
+            data-name="${safeName}" 
+            data-variant="ghost" 
+            data-size="sm" 
+            title="Ver historial médico de ${safeName}"
+            aria-label="Ver historial médico de ${safeName}"
+            style="color: var(--primary, #0ea5e9);">
+            📋
+          </button>
           <button 
             type="button" 
             class="button btn-edit-patient" 

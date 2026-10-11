@@ -52,6 +52,18 @@ export function renderCitaModal() {
                 ➕
               </button>
             </div>
+            <!-- Acceso directo al Historial Médico del paciente seleccionado -->
+            <div id="cita-patient-historial-wrap" style="display: none; margin-top: 0.35rem;">
+              <button type="button" 
+                      id="btn-cita-open-historial" 
+                      class="button" 
+                      data-variant="ghost" 
+                      data-size="sm" 
+                      style="color: var(--primary, #0ea5e9); font-weight: 600; padding: 0.25rem 0.6rem; border: 1px dashed rgba(14, 165, 233, 0.4); border-radius: 4px; font-size: 0.8rem; width: 100%; justify-content: center;" 
+                      title="Abrir y editar historial médico del paciente seleccionado">
+                <span>📋 Ver / Editar Historial Médico de este paciente</span>
+              </button>
+            </div>
           </div>
 
           <!-- Doctor Asignado (Obligatorio) -->
@@ -87,11 +99,14 @@ export function renderCitaModal() {
             <textarea id="cita-observacion" class="input" rows="2" placeholder="Ej. Limpieza dental profunda, revisión general, valoración ortodoncia..."></textarea>
           </div>
 
-          <!-- Pie del Modal: Botón de Eliminar (Izquierda) y Guardar / Cancelar (Derecha) -->
+          <!-- Pie del Modal: Botón de Eliminar / Historial (Izquierda) y Guardar / Cancelar (Derecha) -->
           <footer class="cluster modal-footer" data-justify="between" data-align="center" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(125, 125, 125, 0.15);">
-            <div>
+            <div class="cluster" data-gap="xs">
               <button type="button" id="btn-delete-cita" class="button" data-variant="outlined" style="display: none; border-color: #ef4444; color: #ef4444;" title="Eliminar definitivamente esta cita">
                 🗑️ Eliminar Cita
+              </button>
+              <button type="button" id="btn-cita-footer-historial" class="button" data-variant="outlined" data-size="sm" style="display: none; border-color: var(--primary, #0ea5e9); color: var(--primary, #0ea5e9); font-weight: 600;" title="Abrir historial médico del paciente seleccionado">
+                📋 Historial Médico
               </button>
             </div>
             <div class="cluster" data-gap="xs">

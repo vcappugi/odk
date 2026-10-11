@@ -32,6 +32,8 @@ import { renderAdminConfigModal } from './modules/admin/adminView.js';
 import { adminController } from './modules/admin/adminController.js';
 import { renderCitaModal } from './modules/cita/citaView.js';
 import { citaController } from './modules/cita/citaController.js';
+import { renderHistorialModal } from './modules/historial/historialView.js';
+import { historialController } from './modules/historial/historialController.js';
 
 /**
  * Inicialización de la aplicación
@@ -71,6 +73,9 @@ async function bootstrapApp() {
 
   // 10. Inicializar controlador de citas (CRUD calendario)
   citaController.init();
+
+  // 11. Inicializar controlador de historial médico (CRUD historial_medico)
+  historialController.init();
 
   console.log('✅ ODONTOKRIS inicializado con éxito.');
 }
@@ -224,6 +229,9 @@ function mountAppLayout() {
 
     <!-- Modal Dialog para Citas Odontológicas (CRUD Calendario) -->
     ${renderCitaModal()}
+
+    <!-- Modal Dialog para Historial Médico Odontológico (CRUD historial_medico) -->
+    ${renderHistorialModal()}
   `;
 }
 
