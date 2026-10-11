@@ -8,6 +8,8 @@ import { historialModel } from './historialModel.js';
 import { renderHistorialCard } from './historialView.js';
 import { adminModel } from '../admin/adminModel.js';
 import { patientModel } from '../patients/patientModel.js';
+import { odontogramaController } from '../odontograma/odontogramaController.js';
+import { odontogramaModel } from '../odontograma/odontogramaModel.js';
 import { notificationService } from '../../services/notificationService.js';
 import { permissionService } from '../../services/permissionService.js';
 import { $ } from '../../utils/dom.js';
@@ -22,6 +24,16 @@ export const historialController = {
   init() {
     this.bindEvents();
     this.loadDoctores();
+
+    // Sincronizar en tiempo real: cuando se actualiza el odontograma, recargar el historial clínico
+    odontogramaModel.subscribe(async (event) => {
+      if (event.type === 'tooth_saved' && String(event.pacienteId) === String(this.currentPacienteId)) {
+        const dialog = $('#modal-historial-medico');
+        if (dialog && dialog.open) {
+          await this.loadPatientHistory();
+        }
+      }
+    });
   },
 
   async loadDoctores() {
@@ -52,6 +64,13 @@ export const historialController = {
     document.addEventListener('click', (e) => {
       if (e.target.closest('#btn-historial-new-entry')) {
         this.openCreateEntry();
+      }
+    });
+
+    // 1b. Abrir Odontograma Gráfico desde el Historial
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-historial-open-odontograma')) {
+        odontogramaController.openOdontograma(this.currentPacienteId, this.currentPacienteNombre, this.currentCitaId);
       }
     });
 

@@ -2366,3 +2366,45 @@ html[data-theme="dark"] .btn-add-patient-inline {
 html[data-theme="dark"] .btn-add-patient-inline:hover {
   background: rgba(56, 189, 248, 0.16) !important;
 }
+
+/* ==========================================================================
+   Odontograma Clínico Gráfico Interactivo (FDI)
+   ========================================================================== */
+.tooth-surface-polygon {
+  cursor: pointer;
+  transition: fill 0.15s ease, stroke 0.15s ease, filter 0.15s ease;
+}
+
+.tooth-surface-polygon:hover {
+  stroke: #0284c7 !important;
+  stroke-width: 2px !important;
+  filter: brightness(1.15);
+}
+
+.tooth-unit {
+  transition: transform 0.15s ease;
+}
+
+.tooth-unit:hover {
+  transform: translateY(-2px);
+}
+
+.btn-tool-item {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  opacity: 0.82;
+}
+
+.btn-tool-item.is-active {
+  opacity: 1 !important;
+  box-shadow: 0 0 0 2px var(--primary, #0ea5e9), 0 2px 8px rgba(14, 165, 233, 0.3) !important;
+  font-weight: 700 !important;
+  transform: translateY(-1px);
+}
+
+html[data-theme="dark"] .tooth-svg-box svg {
+  --tooth-bg-normal: #1e293b;
+}
+
+html[data-theme="light"] .tooth-svg-box svg {
+  --tooth-bg-normal: #f8fafc;
+}

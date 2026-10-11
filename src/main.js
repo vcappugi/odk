@@ -34,6 +34,8 @@ import { renderCitaModal } from './modules/cita/citaView.js';
 import { citaController } from './modules/cita/citaController.js';
 import { renderHistorialModal } from './modules/historial/historialView.js';
 import { historialController } from './modules/historial/historialController.js';
+import { renderOdontogramaModal } from './modules/odontograma/odontogramaView.js';
+import { odontogramaController } from './modules/odontograma/odontogramaController.js';
 
 /**
  * Inicialización de la aplicación
@@ -76,6 +78,9 @@ async function bootstrapApp() {
 
   // 11. Inicializar controlador de historial médico (CRUD historial_medico)
   historialController.init();
+
+  // 12. Inicializar controlador de odontograma clínico (CRUD detalle_odontograma)
+  odontogramaController.init();
 
   console.log('✅ ODONTOKRIS inicializado con éxito.');
 }
@@ -232,6 +237,9 @@ function mountAppLayout() {
 
     <!-- Modal Dialog para Historial Médico Odontológico (CRUD historial_medico) -->
     ${renderHistorialModal()}
+
+    <!-- Modal Dialog para Odontograma Clínico Gráfico (CRUD detalle_odontograma) -->
+    ${renderOdontogramaModal()}
   `;
 }
 

@@ -119,6 +119,12 @@ export const SYSTEM_OBJECTS = [
     id_vista: 'modal-historial-medico',
     plantilla: 'historialView',
     descripcion: 'Gestión clínica completa de antecedentes, alergias, diagnósticos, evolución y tratamientos por paciente en la tabla historial_medico.'
+  },
+  {
+    nombre: 'CRUD Odontograma Gráfico',
+    id_vista: 'modal-odontograma',
+    plantilla: 'odontogramaView',
+    descripcion: 'Odontograma gráfico interactivo (FDI), superficies dentales y registro sincronizado en historial_medico y detalle_odontograma.'
   }
 ];
 

@@ -11,6 +11,7 @@ import { consultorioModel } from '../consultorio/consultorioModel.js';
 import { notificationService } from '../../services/notificationService.js';
 import { permissionService } from '../../services/permissionService.js';
 import { historialController } from '../historial/historialController.js';
+import { odontogramaController } from '../odontograma/odontogramaController.js';
 import { $ } from '../../utils/dom.js';
 
 export const citaController = {
@@ -83,6 +84,23 @@ export const citaController = {
         const rawText = opt?.text || '';
         const pacienteName = rawText.split('(')[0].trim() || `Paciente #${pacienteId}`;
         historialController.openHistorial(pacienteId, pacienteName, this.activeCitaId);
+      }
+    });
+
+    // 3d. Botón para abrir el Odontograma del paciente desde la Cita
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-cita-open-odontograma') || e.target.closest('#btn-cita-footer-odontograma')) {
+        e.preventDefault();
+        const pacienteSelect = $('#cita-paciente');
+        const pacienteId = pacienteSelect?.value;
+        if (!pacienteId) {
+          notificationService.warning('Seleccione un paciente de la lista para abrir su odontograma.');
+          return;
+        }
+        const opt = pacienteSelect.options[pacienteSelect.selectedIndex];
+        const rawText = opt?.text || '';
+        const pacienteName = rawText.split('(')[0].trim() || `Paciente #${pacienteId}`;
+        odontogramaController.openOdontograma(pacienteId, pacienteName, this.activeCitaId);
       }
     });
 
@@ -221,11 +239,13 @@ export const citaController = {
   updateHistorialBtnVisibility() {
     const pacienteId = $('#cita-paciente')?.value;
     const wrap = $('#cita-patient-historial-wrap');
-    const footerBtn = $('#btn-cita-footer-historial');
+    const footerHistBtn = $('#btn-cita-footer-historial');
+    const footerOdoBtn = $('#btn-cita-footer-odontograma');
     const isVisible = Boolean(pacienteId);
 
     if (wrap) wrap.style.display = isVisible ? 'block' : 'none';
-    if (footerBtn) footerBtn.style.display = isVisible ? 'inline-flex' : 'none';
+    if (footerHistBtn) footerHistBtn.style.display = isVisible ? 'inline-flex' : 'none';
+    if (footerOdoBtn) footerOdoBtn.style.display = isVisible ? 'inline-flex' : 'none';
   },
 
   /**

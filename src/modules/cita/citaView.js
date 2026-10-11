@@ -52,17 +52,28 @@ export function renderCitaModal() {
                 ➕
               </button>
             </div>
-            <!-- Acceso directo al Historial Médico del paciente seleccionado -->
+            <!-- Acceso directo al Historial Médico y Odontograma del paciente seleccionado -->
             <div id="cita-patient-historial-wrap" style="display: none; margin-top: 0.35rem;">
-              <button type="button" 
-                      id="btn-cita-open-historial" 
-                      class="button" 
-                      data-variant="ghost" 
-                      data-size="sm" 
-                      style="color: var(--primary, #0ea5e9); font-weight: 600; padding: 0.25rem 0.6rem; border: 1px dashed rgba(14, 165, 233, 0.4); border-radius: 4px; font-size: 0.8rem; width: 100%; justify-content: center;" 
-                      title="Abrir y editar historial médico del paciente seleccionado">
-                <span>📋 Ver / Editar Historial Médico de este paciente</span>
-              </button>
+              <div class="cluster" data-gap="xs">
+                <button type="button" 
+                        id="btn-cita-open-historial" 
+                        class="button" 
+                        data-variant="ghost" 
+                        data-size="sm" 
+                        style="color: var(--primary, #0ea5e9); font-weight: 600; padding: 0.25rem 0.5rem; border: 1px dashed rgba(14, 165, 233, 0.4); border-radius: 4px; font-size: 0.78rem; flex: 1; justify-content: center;" 
+                        title="Abrir y editar historial médico del paciente seleccionado">
+                  <span>📋 Historial</span>
+                </button>
+                <button type="button" 
+                        id="btn-cita-open-odontograma" 
+                        class="button" 
+                        data-variant="ghost" 
+                        data-size="sm" 
+                        style="color: #0ea5e9; font-weight: 600; padding: 0.25rem 0.5rem; border: 1px dashed rgba(14, 165, 233, 0.4); border-radius: 4px; font-size: 0.78rem; flex: 1; justify-content: center;" 
+                        title="Abrir odontograma clínico del paciente seleccionado">
+                  <span>🦷 Odontograma</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -106,7 +117,10 @@ export function renderCitaModal() {
                 🗑️ Eliminar Cita
               </button>
               <button type="button" id="btn-cita-footer-historial" class="button" data-variant="outlined" data-size="sm" style="display: none; border-color: var(--primary, #0ea5e9); color: var(--primary, #0ea5e9); font-weight: 600;" title="Abrir historial médico del paciente seleccionado">
-                📋 Historial Médico
+                📋 Historial
+              </button>
+              <button type="button" id="btn-cita-footer-odontograma" class="button" data-variant="outlined" data-size="sm" style="display: none; border-color: #0ea5e9; color: #0ea5e9; font-weight: 600;" title="Abrir odontograma clínico del paciente seleccionado">
+                🦷 Odontograma
               </button>
             </div>
             <div class="cluster" data-gap="xs">

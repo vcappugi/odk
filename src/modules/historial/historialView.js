@@ -28,6 +28,9 @@ export function renderHistorialModal() {
           </div>
           
           <div class="cluster" data-gap="xs">
+            <button type="button" id="btn-historial-open-odontograma" class="button" data-variant="outlined" data-size="sm" style="border-color: #0ea5e9; color: #0ea5e9; font-weight: 600;" title="Abrir y editar el odontograma gráfico de este paciente">
+              <span>🦷 Odontograma Gráfico</span>
+            </button>
             <button type="button" id="btn-historial-new-entry" class="button" data-paint="primary" data-size="sm">
               <span>➕ Nueva Entrada</span>
             </button>

@@ -243,9 +243,12 @@ export function renderPatientManagementModals() {
           </div>
 
           <footer class="cluster modal-footer" data-justify="between" data-align="center" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(125, 125, 125, 0.15);">
-            <div>
+            <div class="cluster" data-gap="xs">
               <button type="button" id="btn-patient-open-historial" class="button" data-variant="outlined" data-size="sm" style="display: none; border-color: var(--primary, #0ea5e9); color: var(--primary, #0ea5e9); font-weight: 600;" title="Abrir y gestionar historial médico de este paciente">
                 📋 Historial Médico
+              </button>
+              <button type="button" id="btn-patient-open-odontograma" class="button" data-variant="outlined" data-size="sm" style="display: none; border-color: #0ea5e9; color: #0ea5e9; font-weight: 600;" title="Abrir odontograma clínico de este paciente">
+                🦷 Odontograma
               </button>
             </div>
             <div class="cluster" data-gap="xs">
@@ -462,6 +465,18 @@ export function renderPatientTableRow(p) {
             aria-label="Ver historial médico de ${safeName}"
             style="color: var(--primary, #0ea5e9);">
             📋
+          </button>
+          <button 
+            type="button" 
+            class="button btn-patient-row-odontograma" 
+            data-id="${p.id}" 
+            data-name="${safeName}" 
+            data-variant="ghost" 
+            data-size="sm" 
+            title="Ver odontograma de ${safeName}"
+            aria-label="Ver odontograma de ${safeName}"
+            style="color: #0ea5e9;">
+            🦷
           </button>
           <button 
             type="button" 

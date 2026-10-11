@@ -11,6 +11,7 @@ import { renderPatientTableRow, renderEmptyPatientsState } from './patientView.j
 import { notificationService } from '../../services/notificationService.js';
 import { permissionService } from '../../services/permissionService.js';
 import { historialController } from '../historial/historialController.js';
+import { odontogramaController } from '../odontograma/odontogramaController.js';
 import { $ } from '../../utils/dom.js';
 
 export const patientController = {
@@ -93,6 +94,29 @@ export const patientController = {
           historialController.openHistorial(id, name);
         } else {
           notificationService.warning('Primero debe guardar los datos del paciente para crear su historial.');
+        }
+      }
+    });
+
+    // 5d. Botón abrir Odontograma desde la fila del paciente
+    document.addEventListener('click', (e) => {
+      const odoRowBtn = e.target.closest('.btn-patient-row-odontograma');
+      if (odoRowBtn) {
+        const id = odoRowBtn.dataset.id;
+        const name = odoRowBtn.dataset.name || '';
+        odontogramaController.openOdontograma(id, name);
+      }
+    });
+
+    // 5e. Botón abrir Odontograma desde el modal de edición del paciente
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-patient-open-odontograma')) {
+        const id = $('#patient-field-id')?.value;
+        const name = $('#patient-field-name')?.value;
+        if (id) {
+          odontogramaController.openOdontograma(id, name);
+        } else {
+          notificationService.warning('Primero debe guardar los datos del paciente para abrir su odontograma.');
         }
       }
     });
@@ -412,9 +436,11 @@ export const patientController = {
     this.updateAgeBadge('');
     this.populateConsultoriosSelect();
 
-    // En modo creación ocultar acceso a historial
+    // En modo creación ocultar acceso a historial y odontograma
     const btnHistorial = $('#btn-patient-open-historial');
     if (btnHistorial) btnHistorial.style.display = 'none';
+    const btnOdonto = $('#btn-patient-open-odontograma');
+    if (btnOdonto) btnOdonto.style.display = 'none';
 
     // Seleccionar por defecto la sede activa
     const activeConsultorio = consultorioModel.getActiveConsultorio();
@@ -498,10 +524,14 @@ export const patientController = {
       });
     }
 
-    // Mostrar botón de acceso al Historial Médico en modo Edición
+    // Mostrar botón de acceso al Historial Médico y Odontograma en modo Edición
     const btnHistorial = $('#btn-patient-open-historial');
     if (btnHistorial) {
       btnHistorial.style.display = 'inline-flex';
+    }
+    const btnOdonto = $('#btn-patient-open-odontograma');
+    if (btnOdonto) {
+      btnOdonto.style.display = 'inline-flex';
     }
 
     this.openDialog('modal-patient-form');
