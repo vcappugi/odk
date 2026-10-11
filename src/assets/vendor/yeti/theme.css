@@ -1,0 +1,106 @@
+/* foundationcss.com: the site's GitHub-dark palette and teal accent as Yeti
+   tokens. A theme is values only, the shape of Yeti's dist/themes/soft.css;
+   load it after yeti.css. Colours derive from the hues and chroma below
+   through oklch() and light-dark() in Yeti's own token layer — no hex values
+   here, and none needed: the ladder's fixed lightness steps already land
+   within a couple of units of the site's current #0d1117/#161b22/#e6edf3
+   (see task-2-report.md for the probe numbers). */
+:root {
+  /* The site follows the visitor's setting, and so does every demo frame,
+     which loads this theme too. Each pinned value below is a light-dark()
+     pair: GitHub's light palette on the left, the dark one the site has
+     always had on the right. */
+  color-scheme: light dark;
+
+  /* oklch hue of the site's teal accent #198DA0. 212 rather than 205 so the
+     primaries Yeti derives from the hue — subtle, soft, strong, text — sit
+     on the same hue as the base pinned below, which they did not. */
+  --yeti-hue-primary: 212;
+  --yeti-chroma: 0.09;
+
+  /* GitHub's blue-grey; tints surfaces, text and borders. */
+  --yeti-hue-neutral: 255;
+
+  /* Site's --radius (12px) and --radius-sm (8px). */
+  --yeti-radius-lg: 0.75rem;
+  --yeti-radius-md: 0.5rem;
+
+	/* The surfaces, the border and the text are set outright rather than
+	   derived from a hue and a chroma. Yeti builds its neutrals from a private
+	   lightness ladder that carries its contrast guarantee, so a theme cannot
+	   move them by input; it can, and this is what the tokens are for, name
+	   them. These are the site's own palette, with the hex each one came
+	   from: GitHub's light on the left of each pair, its dark on the right. */
+	--yeti-color-surface: light-dark(oklch(1 0 0), oklch(0.176 0.014 258)); /* #ffffff / #0d1117, the page */
+	--yeti-color-surface-raised: light-dark(oklch(0.978 0.003 248), oklch(0.220 0.016 257)); /* #f6f8fa / #161b22, a card */
+	/* A well below the page, a symmetric step down from raised's step up.
+	   It used to hold #1c2129, the tone a card takes under the pointer,
+	   which is lighter than raised and made a sunken box look raised. The
+	   hover has its own name below now. */
+	--yeti-color-surface-sunken: light-dark(oklch(0.917 0.010 253), oklch(0.132 0.014 258)); /* #dfe4ea / #05080d, a well */
+
+	/* The site's own, not one of Yeti's: one step lighter than raised. Two
+	   things want it and neither is a well — a card under the pointer, and
+	   the chrome around a demo. Borrowing sunken for them is what inverted
+	   the scale, because sunken has to be darker than the page. */
+	--site-surface-high: light-dark(oklch(0.947 0.007 248), oklch(0.246 0.017 260)); /* #eaeef2 / #1c2129 */
+
+	/* Yeti derives the demo's bar from sunken, which is right against its own
+	   defaults and wrong here: this palette's sunken is a genuine well and the
+	   bar is chrome sitting above the page, not below it. */
+	--yeti-demo-label: var(--site-surface-high);
+	--yeti-color-border: light-dark(oklch(0.876 0.012 248), oklch(0.330 0.015 252)); /* #d0d7de / #30363d */
+	--yeti-color-text: light-dark(oklch(0.254 0.011 254), oklch(0.918 0.006 255)); /* #1f2328 / #e1e4e8, a shade off white so the headings sit rather than glare */
+	--yeti-color-text-muted: light-dark(oklch(0.531 0.017 251), oklch(0.662 0.018 251)); /* #656d76 / #8b949e */
+	/* The accent at its dark lightness is 3.9:1 on white, short of AA for a
+	   link; in light it sits at Yeti's own base step, 0.52, which is 5.2:1 on
+	   the page and 4.9:1 on a card. The same goes for the two product accents. */
+	--yeti-color-primary: light-dark(oklch(0.52 0.098 212), oklch(0.593 0.098 212)); /* #198DA0 in the dark, the accent */
+
+	/* The lede sits one step above the reference pages' 1rem body, not one step
+	   above Yeti's own scale: text-lg derives from the root base of 1.125rem
+	   and lands on 24px, which is a heading rather than a standfirst here. */
+	--yeti-lede-size: 1.125rem;
+	/* Fifty characters is Yeti's default because its lede sits a third above
+	   the body; ours sits an eighth above, so the same count reads much shorter
+	   than it is meant to. */
+	--yeti-lede-measure: 55ch;
+
+	/* The entrance: ease-out and a beat before the first card, as the old
+	   card-enter had. Yeti's own curve starts faster and stops harder, which
+	   reads as a snap on something this large. */
+	--yeti-enter-delay: 0.1s;
+	/* The 0.15s crossfade this site has always had; Yeti's default is 200ms. */
+	--yeti-page-duration: 0.15s;
+}
+
+/* The front page's product tiles do not move on hover. Any rise at all reads
+   as jerky on a tile that size, so their lift is all shadow and surface: the
+   glow the old design used, and the surface change under it. Keeping `lift`
+   rather than hand-rolling the hover still buys the keyboard-focus case. This
+   is on the tiles and not on the root, because the docs' demo frames carry
+   this theme too, and a root value of zero left the lift page's own demo
+   with nothing to show. */
+.card.lift[class*="product-"] {
+  --yeti-lift-distance: 0;
+}
+
+/* ── Each product's accent ── */
+/* The three share a lightness, so they read as siblings, and take their hue
+   from their own mark: Inky's ink is pink, Proton's dog is blue, Yeti's is the
+   teal the site has always used. The hue drives the primaries Yeti derives —
+   subtle, soft, strong, text — and the literal pins the base, because the
+   derivation lands several steps lighter than a brand colour wants to be.
+   Set as a class on the body of a product's docs, and on each card on the
+   front page, so
+   one rule serves both: everything below inherits it, including the lift's
+   glow, which is mixed from the accent above. */
+.product-inky {
+  --yeti-hue-primary: 5;
+  --yeti-color-primary: light-dark(oklch(0.52 0.145 5), oklch(0.593 0.145 5)); /* #c25372 in the dark */
+}
+
+.product-proton {
+  --yeti-hue-primary: 250;
+  --yeti-color-primary: light-dark(oklch(0.52 0.130 250), oklch(0.593 0.130 250)); /* #3882c8 in the dark */
+}

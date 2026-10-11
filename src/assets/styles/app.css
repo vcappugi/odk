@@ -1,0 +1,1917 @@
+/* ==========================================================================
+   ODK Modular App - Estilos de Aplicación y Mejoras Responsivas
+   Complementa los tokens y reglas de capas de Foundation Yeti CSS
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --app-font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  --app-code-font: 'JetBrains Mono', monospace;
+  --app-transition-smooth: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body {
+  font-family: var(--app-font-family);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ==========================================
+   Header y Barra de Navegación (Yeti Nav)
+   ========================================== */
+.brand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  padding: 6px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+}
+
+.brand-name {
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+.platform-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(125, 125, 125, 0.2);
+}
+
+/* ==========================================
+   Hero Section
+   ========================================== */
+.hero {
+  padding: 2.5rem 1.5rem;
+  border-radius: 1.25rem;
+  background: linear-gradient(180deg, rgba(2, 132, 199, 0.05) 0%, rgba(2, 132, 199, 0) 100%);
+  border: 1px solid rgba(125, 125, 125, 0.15);
+  margin-top: 1rem;
+}
+
+.hero-title {
+  font-size: clamp(1.8rem, 4vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, currentColor 40%, #0284c7 100%);
+  -webkit-background-clip: text;
+}
+
+.hero-actions .button {
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--app-transition-smooth);
+}
+
+.hero-actions .button:hover {
+  transform: translateY(-2px);
+}
+
+/* ==========================================
+   Indicador de Estado Supabase
+   ========================================== */
+.status-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.status-indicator.is-live {
+  background-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+  animation: pulse-green 2s infinite;
+}
+
+.status-indicator.is-demo {
+  background-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
+  animation: pulse-purple 2s infinite;
+}
+
+@keyframes pulse-green {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes pulse-purple {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(139, 92, 246, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+}
+
+.status-card {
+  border-radius: 1rem;
+}
+
+.status-title {
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.status-subtitle {
+  font-size: 0.88rem;
+  opacity: 0.85;
+  margin: 0;
+}
+
+.params-grid .param-item {
+  border-radius: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.param-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+}
+
+.param-value {
+  font-family: var(--app-code-font);
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.sql-instructions {
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.sql-code {
+  font-family: var(--app-code-font);
+  font-size: 0.78rem;
+  overflow-x: auto;
+  padding: 0.75rem;
+  border-radius: 0.35rem;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* ==========================================
+   Grilla y Tarjetas de Registros
+   ========================================== */
+.records-section {
+  margin-top: 1.5rem;
+}
+
+.record-card {
+  border-radius: 0.85rem;
+  transition: var(--app-transition-smooth);
+}
+
+.record-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.record-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.record-desc {
+  font-size: 0.9rem;
+  opacity: 0.85;
+  line-height: 1.45;
+  min-height: 2.6rem;
+}
+
+.record-date {
+  font-size: 0.78rem;
+  opacity: 0.65;
+}
+
+.category-tag {
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+/* ==========================================
+   Guía de Desarrollo Android
+   ========================================== */
+.step-card {
+  border-radius: 0.75rem;
+}
+
+.command-box {
+  display: inline-block;
+  font-family: var(--app-code-font);
+  font-size: 0.82rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.25rem;
+  background: rgba(0, 0, 0, 0.07);
+  margin-top: 0.25rem;
+  font-weight: 600;
+}
+
+/* ==========================================
+   Modal / Diálogo Nativo
+   ========================================== */
+dialog.dialog {
+  border: 1px solid rgba(125, 125, 125, 0.25);
+  border-radius: 1rem;
+  max-width: 540px;
+  width: 90vw;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.form-input, .form-select, textarea.form-input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(125, 125, 125, 0.3);
+  font-family: inherit;
+  font-size: 0.95rem;
+  background: inherit;
+  color: inherit;
+}
+
+.form-input:focus, .form-select:focus {
+  outline: 2px solid #0284c7;
+  outline-offset: 1px;
+}
+
+/* ==========================================
+   Toast / Notificaciones Flotantes
+   ========================================== */
+.toast-dock {
+  position: fixed;
+  bottom: max(1.5rem, env(safe-area-inset-bottom, 1.5rem));
+  right: 1.5rem;
+  z-index: 9999;
+  max-width: 380px;
+  width: calc(100vw - 3rem);
+  pointer-events: none;
+}
+
+.toast-dock .alert {
+  pointer-events: auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  border-radius: 0.75rem;
+  animation: slide-up 0.25s ease-out;
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================
+   Footer
+   ========================================== */
+footer.app-footer {
+  margin-top: auto;
+  border-top: 1px solid rgba(125, 125, 125, 0.15);
+  padding: 2rem 1.5rem;
+  font-size: 0.88rem;
+  opacity: 0.85;
+}
+
+/* ==========================================
+   Ajustes Específicos para Android Nativo
+   ========================================== */
+html.platform-android {
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html.platform-android .button,
+html.platform-android input,
+html.platform-android select,
+html.platform-android textarea {
+  user-select: auto;
+}
+
+/* ==========================================
+   Estilos de Autenticación y Modal de Login
+   ========================================== */
+.auth-dialog {
+  max-width: 480px !important;
+}
+
+.auth-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.auth-icon-badge {
+  font-size: 1.4rem;
+}
+
+.auth-tabs {
+  border-bottom: 1px solid rgba(125, 125, 125, 0.2);
+  padding-bottom: 0.5rem;
+}
+
+.auth-tab-btn {
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--app-transition-smooth);
+}
+
+.auth-form {
+  margin-top: 0.5rem;
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper .form-input {
+  padding-right: 2.8rem;
+}
+
+.btn-toggle-password {
+  position: absolute;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 1rem;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.btn-toggle-password:hover {
+  opacity: 1;
+}
+
+.field-hint {
+  font-size: 0.76rem;
+  opacity: 0.75;
+}
+
+.auth-switch-text {
+  text-align: center;
+  font-size: 0.85rem;
+  margin: 0.25rem 0 0 0;
+}
+
+.auth-switch-text a {
+  font-weight: 600;
+  color: #0284c7;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.security-badge {
+  font-size: 0.72rem;
+  color: #10b981;
+  font-weight: 600;
+}
+
+/* Perfil de Usuario en Navbar */
+.user-profile-cluster {
+  background: rgba(125, 125, 125, 0.1);
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(125, 125, 125, 0.2);
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.user-info-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  max-width: 120px;
+}
+
+.user-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role-badge {
+  font-size: 0.65rem;
+  padding: 0 0.35rem;
+  width: fit-content;
+}
+
+/* ==========================================================================
+   ODONTOKRIS: Estructura Superior Compacta y Calendario Odontológico
+   ========================================================================== */
+
+.odontokris-layout {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: clamp(0.75rem, 2vw, 1.25rem);
+  box-sizing: border-box;
+  min-height: 100dvh;
+}
+
+/* 1. Marco Superior Compacto */
+.top-compact-header {
+  border-radius: 0.85rem !important;
+  padding: 0.65rem 1.15rem !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+}
+
+.brand-compact-group {
+  text-decoration: none;
+}
+
+.brand-logo-dental-compact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0284c7 0%, #06b6d4 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.28);
+  flex-shrink: 0;
+}
+
+.brand-logo-dental-compact svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
+}
+
+.compact-system-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, currentColor 50%, #0284c7 100%);
+  -webkit-background-clip: text;
+}
+
+.compact-system-subtitle {
+  font-size: 0.72rem;
+  opacity: 0.7;
+  display: block;
+}
+
+.compact-auth-actions .portal-buttons-grid {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+}
+
+.compact-auth-actions .button {
+  font-size: 0.82rem !important;
+  padding: 0.4rem 0.85rem !important;
+  border-radius: 0.5rem !important;
+  min-height: auto;
+}
+
+/* 2. Sección del Calendario */
+.calendar-main-section {
+  width: 100%;
+}
+
+.calendar-card {
+  border-radius: 1rem !important;
+  padding: clamp(1rem, 2.5vw, 1.5rem) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06) !important;
+}
+
+.calendar-toolbar {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(125, 125, 125, 0.16);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.cal-nav-group {
+  flex-wrap: wrap;
+}
+
+.cal-period-title {
+  font-size: clamp(1.05rem, 2.5vw, 1.3rem);
+  font-weight: 700;
+  margin: 0;
+}
+
+.cal-nav-buttons .button {
+  font-size: 0.82rem !important;
+  padding: 0.35rem 0.65rem !important;
+  font-weight: 600;
+}
+
+.cal-views-selector .button {
+  font-size: 0.82rem !important;
+  padding: 0.35rem 0.75rem !important;
+  font-weight: 600;
+}
+
+/* Vista por Mes */
+.cal-month-wrapper {
+  margin-top: 0.5rem;
+}
+
+.cal-weekdays-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  gap: 6px;
+  margin-bottom: 0.25rem;
+}
+
+.cal-weekday-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.7;
+  padding: 0.25rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cal-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.cal-day-cell {
+  min-height: clamp(55px, 8vw, 85px);
+  border-radius: 0.55rem;
+  border: 1px solid rgba(125, 125, 125, 0.16);
+  background: rgba(125, 125, 125, 0.04);
+  padding: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.cal-day-cell:hover:not(.is-other-month) {
+  border-color: #0284c7;
+  background: rgba(2, 132, 199, 0.08);
+  transform: translateY(-1px);
+}
+
+.cal-day-cell.is-today {
+  border: 2px solid #0284c7 !important;
+  background: rgba(2, 132, 199, 0.12) !important;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+.today-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  background: #0284c7;
+  color: #ffffff;
+  padding: 0.08rem 0.35rem;
+  border-radius: 4px;
+}
+
+.today-tag-small {
+  font-size: 0.58rem;
+  font-weight: 700;
+  background: #0284c7;
+  color: #ffffff;
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+  margin-top: 0.2rem;
+}
+
+.cal-day-cell.is-other-month {
+  opacity: 0.3;
+  cursor: default;
+  background: transparent;
+}
+
+.day-number {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.day-content {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.appointment-dot {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+/* Vista por Semana */
+.cal-week-wrapper {
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.cal-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(115px, 1fr));
+  gap: 8px;
+  min-width: 700px;
+}
+
+.cal-week-col {
+  border: 1px solid rgba(125, 125, 125, 0.16);
+  border-radius: 0.65rem;
+  padding: 0.5rem;
+  min-height: 220px;
+  background: rgba(125, 125, 125, 0.03);
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cal-week-col:hover {
+  border-color: #0284c7;
+  background: rgba(2, 132, 199, 0.05);
+}
+
+.cal-week-col.is-today {
+  border: 2px solid #0284c7 !important;
+  background: rgba(2, 132, 199, 0.08) !important;
+}
+
+.week-col-header {
+  text-align: center;
+  border-bottom: 1px solid rgba(125, 125, 125, 0.14);
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.col-day-name {
+  font-size: 0.72rem;
+  opacity: 0.7;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.col-day-num {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.cal-appointment-card {
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.45rem;
+  font-size: 0.74rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border-left-width: 3px;
+  border-left-style: solid;
+  transition: all 0.2s ease;
+}
+
+.app-time {
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.app-patient {
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.app-treatment {
+  font-size: 0.68rem;
+  line-height: 1.2;
+}
+
+.empty-slot {
+  font-size: 0.72rem;
+  opacity: 0.4;
+  text-align: center;
+  padding: 1rem 0;
+  font-style: italic;
+}
+
+/* Vista por Día */
+.cal-day-wrapper {
+  margin-top: 0.25rem;
+}
+
+.cal-day-banner {
+  padding: 0.75rem 1rem;
+  border-radius: 0.65rem;
+  background: rgba(2, 132, 199, 0.08);
+  border: 1px solid rgba(2, 132, 199, 0.2);
+}
+
+.day-banner-badge {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #0284c7;
+  padding: 0.25rem 0.65rem;
+  background: rgba(2, 132, 199, 0.15);
+  border-radius: 0.4rem;
+}
+
+.cal-day-timeline {
+  margin-top: 0.5rem;
+}
+
+.cal-hour-row {
+  padding: 0.45rem 0;
+  border-bottom: 1px solid rgba(125, 125, 125, 0.1);
+}
+
+.hour-label {
+  width: 80px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.75;
+  font-family: var(--app-code-font);
+  flex-shrink: 0;
+}
+
+.hour-content {
+  flex: 1;
+}
+
+.day-agenda-card {
+  border-left: 4px solid #0284c7 !important;
+  padding: 0.45rem 0.85rem !important;
+  border-radius: 0.5rem !important;
+}
+
+.agenda-patient {
+  font-size: 0.85rem;
+}
+
+.agenda-treatment {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.hour-empty-slot {
+  font-size: 0.78rem;
+  opacity: 0.35;
+  font-style: italic;
+}
+
+/* Botón interactivo 'Sesión Activa' para cerrar sesión */
+.btn-session-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.35rem !important;
+  border-radius: 9999px !important;
+  padding: 0.28rem 0.85rem !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  color: #10b981 !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  text-decoration: none !important;
+}
+
+.btn-session-toggle:hover {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+}
+
+.btn-session-toggle .session-text-active {
+  display: inline;
+}
+
+.btn-session-toggle .session-text-hover {
+  display: none;
+}
+
+.btn-session-toggle:hover .session-text-active {
+  display: none;
+}
+
+.btn-session-toggle:hover .session-text-hover {
+  display: inline;
+}
+
+/* Sesión activa compacta en el header */
+.user-session-view {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-session-view .user-session-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 0.8rem;
+}
+
+.user-session-view .user-session-details {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-session-view .user-session-name {
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.user-session-view .user-session-mail {
+  display: none;
+}
+
+/* ==========================================================================
+   Botón pequeño para cambio de tema (Claro / Oscuro)
+   ========================================================================== */
+.header-actions-cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-theme-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  font-size: 1rem !important;
+  line-height: 1 !important;
+  cursor: pointer;
+  border: 1px solid rgba(125, 125, 125, 0.25) !important;
+  background: rgba(125, 125, 125, 0.08) !important;
+  color: inherit !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.btn-theme-toggle:hover {
+  background: rgba(125, 125, 125, 0.18) !important;
+  border-color: rgba(125, 125, 125, 0.45) !important;
+  transform: translateY(-1px) scale(1.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-theme-toggle:active {
+  transform: scale(0.95);
+}
+
+/* ==========================================================================
+   Soporte y Estilos para Modo Oscuro y Claro
+   ========================================================================== */
+/* ==========================================================================
+   Soporte y Estilos para Modo Oscuro y Claro (Contraste Perfecto en Tarjetas)
+   ========================================================================== */
+html[data-theme="dark"],
+:root[data-theme="dark"] {
+  color-scheme: dark !important;
+}
+
+html[data-theme="light"],
+:root[data-theme="light"] {
+  color-scheme: light !important;
+}
+
+/* ==========================================================================
+   MODO CLARO (data-theme="light")
+   REGLA: En tema claro, las letras de las tarjetas dentro de las fechas
+   DEBEN SER OSCURAS (alto contraste y legibilidad).
+   ========================================================================== */
+html[data-theme="light"] body {
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+html[data-theme="light"] .top-compact-header,
+html[data-theme="light"] .calendar-card {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .cal-period-title {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .cal-weekday-header {
+  color: #475569 !important;
+}
+
+/* Celdas / Tarjetas de días en vista de Mes */
+html[data-theme="light"] .cal-day-cell {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .cal-day-cell:hover {
+  background-color: #f0f9ff !important;
+  border-color: #0284c7 !important;
+}
+
+html[data-theme="light"] .cal-day-cell .day-number {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="light"] .cal-day-cell.is-other-month {
+  background-color: #f8fafc !important;
+  opacity: 0.45;
+}
+
+html[data-theme="light"] .cal-day-cell.is-other-month .day-number {
+  color: #94a3b8 !important;
+}
+
+/* Columnas de fechas en vista de Semana */
+html[data-theme="light"] .cal-week-col {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .cal-week-col:hover {
+  border-color: #0284c7 !important;
+  background-color: #f8fafc !important;
+}
+
+html[data-theme="light"] .cal-week-col .col-day-num {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="light"] .cal-week-col .col-day-name {
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+html[data-theme="light"] .cal-week-col .empty-slot {
+  color: #64748b !important;
+}
+
+/* Tarjetas de citas dentro de las fechas (Week View) */
+html[data-theme="light"] .cal-appointment-card {
+  background-color: #f0f9ff !important;
+  border-left-color: #0284c7 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+}
+
+html[data-theme="light"] .cal-appointment-card[data-app-type="secondary"],
+html[data-theme="light"] .cal-appointment-card[data-paint="secondary"] {
+  background-color: #faf5ff !important;
+  border-left-color: #7c3aed !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .cal-appointment-card[data-app-type="success"],
+html[data-theme="light"] .cal-appointment-card[data-paint="success"] {
+  background-color: #f0fdf4 !important;
+  border-left-color: #16a34a !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .cal-appointment-card .app-time {
+  color: #0369a1 !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="light"] .cal-appointment-card[data-app-type="secondary"] .app-time,
+html[data-theme="light"] .cal-appointment-card[data-paint="secondary"] .app-time {
+  color: #6d28d9 !important;
+}
+
+html[data-theme="light"] .cal-appointment-card[data-app-type="success"] .app-time,
+html[data-theme="light"] .cal-appointment-card[data-paint="success"] .app-time {
+  color: #15803d !important;
+}
+
+html[data-theme="light"] .cal-appointment-card .app-patient {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="light"] .cal-appointment-card .app-treatment {
+  color: #334155 !important;
+  font-weight: 500 !important;
+}
+
+/* Tarjetas de agenda en vista de Día */
+html[data-theme="light"] .day-agenda-card {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+html[data-theme="light"] .day-agenda-card .agenda-patient {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="light"] .day-agenda-card .agenda-treatment {
+  color: #475569 !important;
+}
+
+html[data-theme="light"] .hour-label {
+  color: #334155 !important;
+}
+
+html[data-theme="light"] .hour-empty-slot {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .cal-hour-row {
+  border-bottom-color: #e2e8f0 !important;
+}
+
+/* ==========================================================================
+   MODO OSCURO (data-theme="dark")
+   REGLA: En tema oscuro, las letras de las tarjetas dentro de las fechas
+   DEBEN SER CLARAS (alto contraste y legibilidad).
+   ========================================================================== */
+html[data-theme="dark"] body {
+  background-color: #0b111e;
+  color: #f1f5f9;
+}
+
+html[data-theme="dark"] .top-compact-header {
+  background: #111827 !important;
+  border-color: #1f2937 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .calendar-card {
+  background: #111827 !important;
+  border-color: #1f2937 !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5) !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .cal-period-title {
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .cal-weekday-header {
+  color: #94a3b8 !important;
+}
+
+/* Celdas / Tarjetas de días en vista de Mes */
+html[data-theme="dark"] .cal-day-cell {
+  background-color: #151f32 !important;
+  border-color: #1f2937 !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .cal-day-cell:hover {
+  background-color: #1e293b !important;
+  border-color: #38bdf8 !important;
+}
+
+html[data-theme="dark"] .cal-day-cell .day-number {
+  color: #f8fafc !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="dark"] .cal-day-cell.is-other-month {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+  opacity: 0.35;
+}
+
+html[data-theme="dark"] .cal-day-cell.is-other-month .day-number {
+  color: #64748b !important;
+}
+
+/* Columnas de fechas en vista de Semana */
+html[data-theme="dark"] .cal-week-col {
+  background-color: #151f32 !important;
+  border-color: #1f2937 !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .cal-week-col:hover {
+  background-color: #1e293b !important;
+  border-color: #38bdf8 !important;
+}
+
+html[data-theme="dark"] .cal-week-col .col-day-num {
+  color: #f8fafc !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="dark"] .cal-week-col .col-day-name {
+  color: #94a3b8 !important;
+  font-weight: 600 !important;
+}
+
+html[data-theme="dark"] .cal-week-col .empty-slot {
+  color: #94a3b8 !important;
+}
+
+/* Tarjetas de citas dentro de las fechas (Week View) */
+html[data-theme="dark"] .cal-appointment-card {
+  background-color: #1e293b !important;
+  border-left-color: #38bdf8 !important;
+  color: #f8fafc !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+html[data-theme="dark"] .cal-appointment-card[data-app-type="secondary"],
+html[data-theme="dark"] .cal-appointment-card[data-paint="secondary"] {
+  background-color: #241442 !important;
+  border-left-color: #a78bfa !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .cal-appointment-card[data-app-type="success"],
+html[data-theme="dark"] .cal-appointment-card[data-paint="success"] {
+  background-color: #0d2818 !important;
+  border-left-color: #4ade80 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .cal-appointment-card .app-time {
+  color: #38bdf8 !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="dark"] .cal-appointment-card[data-app-type="secondary"] .app-time,
+html[data-theme="dark"] .cal-appointment-card[data-paint="secondary"] .app-time {
+  color: #c4b5fd !important;
+}
+
+html[data-theme="dark"] .cal-appointment-card[data-app-type="success"] .app-time,
+html[data-theme="dark"] .cal-appointment-card[data-paint="success"] .app-time {
+  color: #4ade80 !important;
+}
+
+html[data-theme="dark"] .cal-appointment-card .app-patient {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="dark"] .cal-appointment-card .app-treatment {
+  color: #cbd5e1 !important;
+  font-weight: 500 !important;
+}
+
+/* Tarjetas de agenda en vista de Día */
+html[data-theme="dark"] .day-agenda-card {
+  background-color: #151f32 !important;
+  border-color: #1f2937 !important;
+  color: #f8fafc !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+}
+
+html[data-theme="dark"] .day-agenda-card .agenda-patient {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="dark"] .day-agenda-card .agenda-treatment {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .hour-label {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .hour-empty-slot {
+  color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .cal-hour-row {
+  border-bottom-color: #1f2937 !important;
+}
+
+html[data-theme="dark"] .auth-modal-box {
+  background: #111827 !important;
+  border-color: #1f2937 !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .auth-tabs-group {
+  background: #151f32 !important;
+  border-color: #1f2937 !important;
+}
+
+html[data-theme="dark"] .input,
+html[data-theme="dark"] input {
+  background-color: #0b111e !important;
+  border-color: #374151 !important;
+  color: #f3f4f6 !important;
+}
+
+html[data-theme="dark"] .compact-system-title {
+  background: linear-gradient(135deg, #f8fafc 50%, #38bdf8 100%);
+  -webkit-background-clip: text;
+}
+
+html[data-theme="dark"] .btn-theme-toggle {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .btn-theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+@media (max-width: 600px) {
+  .header-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .header-actions-cluster {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .compact-auth-actions {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .compact-auth-actions .portal-buttons-grid {
+    width: 100%;
+  }
+
+  .compact-auth-actions .button {
+    flex: 1;
+  }
+}
+
+/* ==========================================================================
+   Barra de Acciones Rápidas (Espacio Arriba del Calendario)
+   ========================================================================== */
+.quick-actions-bar {
+  border-radius: 0.85rem !important;
+  padding: 0.55rem 1rem !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+}
+
+.quick-actions-title-badge {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  background: rgba(2, 132, 199, 0.08);
+  color: #0284c7;
+}
+
+.quick-actions-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.btn-quick-action {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.45rem !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  padding: 0.4rem 0.9rem !important;
+  border-radius: 0.55rem !important;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+
+.btn-quick-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+}
+
+.btn-quick-action:active {
+  transform: translateY(0);
+}
+
+.quick-btn-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Modo Claro: Barra de Acciones */
+html[data-theme="light"] .quick-actions-bar {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme="light"] #btn-quick-doctor {
+  border-color: #0284c7 !important;
+  color: #0284c7 !important;
+  background-color: transparent !important;
+}
+
+html[data-theme="light"] #btn-quick-doctor:hover {
+  background-color: #f0f9ff !important;
+}
+
+html[data-theme="light"] #btn-quick-history,
+html[data-theme="light"] #btn-quick-reports {
+  color: #1e293b !important;
+  background-color: rgba(125, 125, 125, 0.06) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html[data-theme="light"] #btn-quick-history:hover,
+html[data-theme="light"] #btn-quick-reports:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Modo Oscuro: Barra de Acciones */
+html[data-theme="dark"] .quick-actions-bar {
+  background-color: #111827 !important;
+  border-color: #1f2937 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+}
+
+html[data-theme="dark"] .quick-actions-title-badge {
+  background: rgba(56, 189, 248, 0.14);
+  color: #38bdf8;
+}
+
+html[data-theme="dark"] #btn-quick-doctor {
+  border-color: #38bdf8 !important;
+  color: #38bdf8 !important;
+  background-color: transparent !important;
+}
+
+html[data-theme="dark"] #btn-quick-doctor:hover {
+  background-color: rgba(56, 189, 248, 0.12) !important;
+}
+
+html[data-theme="dark"] #btn-quick-history,
+html[data-theme="dark"] #btn-quick-reports {
+  color: #f1f5f9 !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid #1f2937 !important;
+}
+
+html[data-theme="dark"] #btn-quick-history:hover,
+html[data-theme="dark"] #btn-quick-reports:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  border-color: #374151 !important;
+}
+
+/* ==========================================================================
+   Modales y Diálogos de Acciones Rápidas
+   ========================================================================== */
+.custom-modal {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  max-width: 540px;
+  width: 92%;
+  margin: auto;
+}
+
+.custom-modal.modal-wide {
+  max-width: 780px;
+}
+
+.custom-modal::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+}
+
+.custom-modal .modal-box {
+  padding: 1.5rem !important;
+  border-radius: 1.15rem !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+}
+
+.modal-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(2, 132, 199, 0.12);
+  font-size: 1.1rem;
+}
+
+html[data-theme="light"] .custom-modal .modal-box {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .custom-modal .modal-box {
+  background-color: #111827 !important;
+  color: #f1f5f9 !important;
+  border-color: #1f2937 !important;
+}
+
+/* Modales: Tablas de Historial y Reportes */
+.history-table-container {
+  overflow-x: auto;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(125, 125, 125, 0.2);
+}
+
+html[data-theme="light"] .history-table-container {
+  border-color: #e2e8f0;
+}
+
+html[data-theme="light"] .history-table th {
+  background: #f8fafc;
+  color: #475569;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+html[data-theme="light"] .history-table td {
+  border-bottom: 1px solid #f1f5f9;
+  color: #0f172a;
+}
+
+html[data-theme="dark"] .history-table-container {
+  border-color: #1f2937;
+}
+
+html[data-theme="dark"] .history-table th {
+  background: #151f32;
+  color: #94a3b8;
+  border-bottom: 2px solid #1f2937;
+}
+
+html[data-theme="dark"] .history-table td {
+  border-bottom: 1px solid #1f2937;
+  color: #f1f5f9;
+}
+
+/* Tarjetas KPI en Reportes */
+.reports-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.kpi-card {
+  padding: 0.85rem !important;
+  border-radius: 0.75rem !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+html[data-theme="light"] .kpi-card {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="dark"] .kpi-card {
+  background: #151f32 !important;
+  border-color: #1f2937 !important;
+  color: #f1f5f9 !important;
+}
+
+.kpi-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.75;
+  text-transform: uppercase;
+}
+
+.kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.procedures-summary-box {
+  padding: 1rem !important;
+  border-radius: 0.75rem !important;
+}
+
+html[data-theme="light"] .procedures-summary-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .procedures-summary-box {
+  background: #151f32 !important;
+  border-color: #1f2937 !important;
+}
+
+@media (max-width: 768px) {
+  .quick-actions-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+
+  .quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    width: 100%;
+  }
+
+  .btn-quick-action {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   Módulo de Gestión de Pacientes (CRUD)
+   ========================================================================== */
+.patients-count-badge {
+  font-size: 0.76rem;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.patients-toolbar {
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(125, 125, 125, 0.15);
+}
+
+.patients-table-wrapper {
+  border-radius: 0.75rem !important;
+  overflow: hidden;
+  max-height: 420px;
+}
+
+.table-scroll-container {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 380px;
+}
+
+.patients-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.patients-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  text-align: left;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.patients-table td {
+  padding: 0.65rem 0.85rem;
+  vertical-align: middle;
+}
+
+.patient-avatar-mini {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(2, 132, 199, 0.12);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.patient-row-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.patient-row-addr {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.btn-edit-patient,
+.btn-delete-patient {
+  padding: 0.25rem 0.45rem !important;
+  border-radius: 6px !important;
+  font-size: 0.95rem !important;
+  line-height: 1;
+}
+
+.btn-edit-patient:hover {
+  background: rgba(2, 132, 199, 0.18) !important;
+  color: #0284c7 !important;
+  transform: scale(1.1);
+}
+
+.btn-delete-patient:hover {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #ef4444 !important;
+  transform: scale(1.1);
+}
+
+/* Modo Claro: Tabla de Pacientes */
+html[data-theme="light"] .patients-table th {
+  background: #f8fafc;
+  color: #475569;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+html[data-theme="light"] .patients-table td {
+  border-bottom: 1px solid #f1f5f9;
+  color: #0f172a;
+}
+
+html[data-theme="light"] .patient-table-row:hover {
+  background: #f0f9ff;
+}
+
+/* Modo Oscuro: Tabla de Pacientes */
+html[data-theme="dark"] .patients-table th {
+  background: #151f32;
+  color: #94a3b8;
+  border-bottom: 2px solid #1f2937;
+}
+
+html[data-theme="dark"] .patients-table td {
+  border-bottom: 1px solid #1f2937;
+  color: #f1f5f9;
+}
+
+html[data-theme="dark"] .patient-table-row:hover {
+  background: #1e293b;
+}
+
+html[data-theme="dark"] .patient-avatar-mini {
+  background: rgba(56, 189, 248, 0.16);
+}
+
+/* ==========================================================================
+   Estilos de Fotografía del Paciente (Google Drive) y Nuevos Campos
+   ========================================================================== */
+.patient-photo-card {
+  position: relative;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.patient-avatar-preview-wrapper {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid rgba(2, 132, 199, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(125, 125, 125, 0.08);
+  flex-shrink: 0;
+}
+
+.patient-avatar-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.patient-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.12) 0%, rgba(14, 165, 233, 0.05) 100%);
+  user-select: none;
+}
+
+.patient-photo-spinner-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.patient-table-avatar-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(125, 125, 125, 0.1);
+  border: 1px solid rgba(125, 125, 125, 0.2);
+}
+
+.patient-table-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.badge-sex-tag {
+  font-size: 0.65rem !important;
+  font-weight: 700 !important;
+  padding: 0.1rem 0.35rem !important;
+  border-radius: 4px !important;
+  opacity: 0.85;
+}
+
+.btn-drive-cfg-toggle {
+  font-size: 0.75rem !important;
+  opacity: 0.8;
+  padding: 0.2rem 0.5rem !important;
+}
+
+.btn-drive-cfg-toggle:hover {
+  opacity: 1;
+  color: #0284c7 !important;
+}
+
+html[data-theme="light"] .patient-photo-card {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+html[data-theme="dark"] .patient-photo-card {
+  background: #111a2e;
+  border-color: #1f2d47;
+}
+
+@media (max-width: 600px) {
+  .patient-avatar-preview-wrapper {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto;
+  }
+}
+
+/* ==========================================================================
+   Modal de Paciente Extra Ancho sin Scroll (Diseño 2 Columnas)
+   ========================================================================== */
+.modal-patient-wide {
+  max-width: 930px !important;
+  width: 96vw !important;
+  max-height: 95vh !important;
+  border-radius: 1rem !important;
+}
+
+.modal-patient-wide .modal-box {
+  padding: 1.15rem 1.4rem !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.patient-form-two-col {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 1.15rem;
+  align-items: stretch;
+}
+
+.patient-photo-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1rem 0.65rem;
+  border-radius: 0.75rem;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.patient-photo-aside-info strong {
+  display: block;
+  font-size: 0.85rem;
+}
+
+.patient-photo-aside-info small {
+  font-size: 0.72rem;
+  opacity: 0.75;
+}
+
+.btn-pick-photo {
+  width: 100%;
+  justify-content: center;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.patient-fields-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem 0.85rem;
+  align-content: start;
+}
+
+.field-label-compact {
+  font-size: 0.8rem !important;
+  margin-bottom: 2px !important;
+  font-weight: 500 !important;
+}
+
+.input-compact {
+  padding: 0.35rem 0.65rem !important;
+  font-size: 0.86rem !important;
+  min-height: 2.1rem !important;
+  height: 2.1rem !important;
+}
+
+.badge-compact {
+  font-size: 0.68rem !important;
+  padding: 0.05rem 0.35rem !important;
+}
+
+@media (max-width: 768px) {
+  .patient-form-two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-photo-aside {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 540px) {
+  .patient-fields-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+
+
+
+
+
