@@ -151,20 +151,24 @@ export const citaController = {
       }
     }
 
-    // 2. Doctores
+    // 2. Doctores (Obligatorio)
     if (doctorSelect) {
-      doctorSelect.innerHTML = '<option value="">(Sin doctor asignado / Por definir)</option>';
+      doctorSelect.innerHTML = '<option value="" disabled>Cargando doctores...</option>';
       try {
         const doctores = await adminModel.getDoctores();
         if (doctores && doctores.length > 0) {
-          doctorSelect.innerHTML += doctores.map(d => `
-            <option value="${d.id}" ${selectedDoctorId == d.id ? 'selected' : ''}>
-              ${d.nombre} ${d.consultorio?.nombre ? `[${d.consultorio.nombre}]` : ''}
-            </option>
-          `).join('');
+          doctorSelect.innerHTML = '<option value="" disabled ' + (!selectedDoctorId ? 'selected' : '') + '>Seleccione un doctor registrado...</option>' +
+            doctores.map(d => `
+              <option value="${d.id}" ${selectedDoctorId == d.id ? 'selected' : ''}>
+                ${d.nombre} ${d.consultorio?.nombre ? `[${d.consultorio.nombre}]` : ''}
+              </option>
+            `).join('');
+        } else {
+          doctorSelect.innerHTML = '<option value="" disabled selected>No hay doctores registrados (Cree uno en Configuración)</option>';
         }
       } catch (err) {
         console.warn('[CitaController] Error listando doctores:', err);
+        doctorSelect.innerHTML = '<option value="" disabled selected>Error al cargar lista de doctores</option>';
       }
     }
   },
@@ -183,6 +187,11 @@ export const citaController = {
 
     if (!pacienteId) {
       notificationService.show('Por favor seleccione un paciente.', 'warning');
+      return;
+    }
+
+    if (!doctorId) {
+      notificationService.show('Por favor seleccione el doctor o especialista asignado.', 'warning');
       return;
     }
 
@@ -211,7 +220,7 @@ export const citaController = {
     try {
       const payload = {
         paciente_id: parseInt(pacienteId, 10),
-        doctor_id: doctorId ? parseInt(doctorId, 10) : null,
+        doctor_id: parseInt(doctorId, 10),
         fecha,
         hora_desde: horaDesde.length === 5 ? `${horaDesde}:00` : horaDesde,
         hora_hasta: horaHasta.length === 5 ? `${horaHasta}:00` : horaHasta,

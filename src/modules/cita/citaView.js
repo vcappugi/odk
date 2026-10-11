@@ -32,11 +32,11 @@ export function renderCitaModal() {
             </select>
           </div>
 
-          <!-- Doctor Asignado (Opcional) -->
+          <!-- Doctor Asignado (Obligatorio) -->
           <div class="field">
-            <label for="cita-doctor" class="label">Doctor / Odontólogo Asignado</label>
-            <select id="cita-doctor" class="input select">
-              <option value="">(Sin doctor asignado / Por definir)</option>
+            <label for="cita-doctor" class="label">Doctor / Especialista *</label>
+            <select id="cita-doctor" class="input select" required>
+              <option value="" disabled selected>Seleccione un doctor registrado...</option>
             </select>
           </div>
 
