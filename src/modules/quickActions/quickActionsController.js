@@ -4,6 +4,7 @@
  */
 
 import { getSupabase } from '../../services/supabaseClient.js';
+import { consultorioModel } from '../consultorio/consultorioModel.js';
 import { notificationService } from '../../services/notificationService.js';
 import { $ } from '../../utils/dom.js';
 
@@ -131,9 +132,12 @@ export const quickActionsController = {
       const supabase = getSupabase();
       if (!supabase) throw new Error('Cliente Supabase no inicializado');
 
+      const activeConsultorio = consultorioModel.getActiveConsultorio();
+      const consultorio_id = activeConsultorio?.id ? Number(activeConsultorio.id) : null;
+
       const { data, error } = await supabase
         .from('paciente')
-        .insert([{ nombre, ci, telefono, mail, direccion }])
+        .insert([{ nombre, ci, telefono, mail, direccion, consultorio_id }])
         .select();
 
       if (error) {
@@ -188,9 +192,12 @@ export const quickActionsController = {
       const supabase = getSupabase();
       if (!supabase) throw new Error('Cliente Supabase no inicializado');
 
+      const activeConsultorio = consultorioModel.getActiveConsultorio();
+      const consultorio_id = activeConsultorio?.id ? Number(activeConsultorio.id) : null;
+
       const { data, error } = await supabase
         .from('doctor')
-        .insert([{ nombre, telefono, mail }])
+        .insert([{ nombre, telefono, mail, consultorio_id }])
         .select();
 
       if (error) {

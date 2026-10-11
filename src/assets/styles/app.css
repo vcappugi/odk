@@ -2101,6 +2101,62 @@ html[data-theme="dark"] .admin-feature-card:hover .feature-card-arrow {
   background: rgba(125, 125, 125, 0.04);
 }
 
+/* ==========================================================================
+   Indicador de Consultorio / Sede Activa en Cabecera
+   ========================================================================== */
+.user-consultorio-pill {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(2, 132, 199, 0.08);
+  border: 1px solid rgba(2, 132, 199, 0.25);
+  border-radius: 9999px;
+  padding: 0.15rem 0.35rem 0.15rem 0.55rem;
+  transition: all 0.2s ease;
+}
+
+.user-consultorio-pill:hover {
+  background: rgba(2, 132, 199, 0.14);
+  border-color: #0284c7;
+}
+
+.badge-sede {
+  background: transparent !important;
+  color: #0284c7 !important;
+  font-weight: 700 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .user-consultorio-pill {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+html[data-theme="dark"] .badge-sede {
+  color: #38bdf8 !important;
+}
+
+.btn-switch-sede {
+  padding: 2px 5px !important;
+  font-size: 0.72rem !important;
+  border-radius: 9999px !important;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: all 0.2s ease;
+}
+
+.btn-switch-sede:hover {
+  opacity: 1;
+  transform: rotate(180deg);
+}
+
+/* Selectores de formulario para Consultorio */
+.form-select {
+  appearance: auto;
+  cursor: pointer;
+}
+
+
 
 
 

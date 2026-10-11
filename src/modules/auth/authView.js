@@ -41,6 +41,17 @@ export function renderAuthModal() {
             </div>
           </div>
 
+          <!-- Selección obligatoria de Consultorio / Sede para filtrar todos los datos -->
+          <div class="field stack" data-gap="2xs">
+            <label for="login-consultorio"><strong>🏢 Consultorio / Sede de Trabajo:</strong></label>
+            <select id="login-consultorio" name="consultorio_id" class="form-input form-select" required>
+              <option value="">Cargando sedes disponibles...</option>
+            </select>
+            <small class="field-hint" style="font-size: 0.74rem; opacity: 0.75;">
+              📌 Los pacientes, citas y doctores se filtrarán por la sede seleccionada.
+            </small>
+          </div>
+
           <div class="cluster" data-justify="between" data-align="center" style="font-size: 0.85rem;">
             <label class="cluster" data-gap="2xs" data-align="center" style="cursor: pointer;">
               <input type="checkbox" id="remember-me" checked>
@@ -108,6 +119,34 @@ export function renderAuthModal() {
               ¿Ya tienes cuenta? <a href="#" id="link-go-to-login">Inicia sesión</a>
             </p>
           </div>
+        </form>
+      </div>
+    </dialog>
+
+    <!-- Modal Rápido: Cambiar de Consultorio / Sede Activa -->
+    <dialog id="dialog-switch-consultorio" class="dialog custom-modal" aria-labelledby="switch-consultorio-title">
+      <div class="modal-box box stack" data-surface="raised" data-border data-gap="md">
+        <header class="modal-header cluster" data-justify="between" data-align="center">
+          <div class="cluster" data-gap="xs" data-align="center">
+            <span class="modal-icon-badge">🏢</span>
+            <div>
+              <h3 id="switch-consultorio-title" style="margin: 0; font-size: 1.1rem;">Cambiar Sede / Consultorio</h3>
+              <small style="opacity: 0.75; font-size: 0.76rem;">Filtra la información de pacientes y citas</small>
+            </div>
+          </div>
+          <button type="button" class="button btn-close-modal" data-variant="ghost" data-size="sm" aria-label="Cerrar modal">✕</button>
+        </header>
+
+        <form id="form-switch-consultorio" class="stack" data-gap="sm">
+          <div class="field stack" data-gap="2xs">
+            <label for="switch-consultorio-select"><strong>Selecciona la sede de trabajo:</strong></label>
+            <select id="switch-consultorio-select" class="input form-select" required></select>
+          </div>
+
+          <footer class="cluster modal-footer" data-justify="end" data-gap="xs" style="margin-top: 0.5rem;">
+            <button type="button" class="button btn-close-modal" data-variant="ghost">Cancelar</button>
+            <button type="submit" id="btn-submit-switch-consultorio" class="button" data-paint="primary">Aplicar Cambio</button>
+          </footer>
         </form>
       </div>
     </dialog>

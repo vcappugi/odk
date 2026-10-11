@@ -1,9 +1,12 @@
 /**
  * Modelo de Datos para Consultorios (Supabase)
  * Tabla: public.consultorio
+ * Gestiona consultas de sedes y persistencia del consultorio activo.
  */
 
 import { getSupabase } from '../../services/supabaseClient.js';
+
+const ACTIVE_CONSULTORIO_KEY = 'odk_active_consultorio';
 
 export const consultorioModel = {
   /**
@@ -51,5 +54,45 @@ export const consultorioModel = {
     } catch {
       return null;
     }
+  },
+
+  /**
+   * Obtiene el consultorio activo seleccionado en el sistema
+   */
+  getActiveConsultorio() {
+    try {
+      const raw = localStorage.getItem(ACTIVE_CONSULTORIO_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Establece el consultorio activo y notifica el cambio a todos los módulos
+   * @param {Object} consultorio
+   */
+  setActiveConsultorio(consultorio) {
+    if (!consultorio) {
+      localStorage.removeItem(ACTIVE_CONSULTORIO_KEY);
+    } else {
+      localStorage.setItem(ACTIVE_CONSULTORIO_KEY, JSON.stringify(consultorio));
+    }
+
+    // Emitir evento para que los componentes y módulos refresquen sus filtros
+    window.dispatchEvent(new CustomEvent('consultorio:changed', {
+      detail: consultorio
+    }));
+
+    return consultorio;
+  },
+
+  /**
+   * Suscribe una función para escuchar cambios en el consultorio activo
+   */
+  subscribe(callback) {
+    const handler = (e) => callback(e.detail);
+    window.addEventListener('consultorio:changed', handler);
+    return () => window.removeEventListener('consultorio:changed', handler);
   }
 };

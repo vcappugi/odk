@@ -7,16 +7,21 @@ import { getSupabase } from '../../services/supabaseClient.js';
 
 export const patientModel = {
   /**
-   * Obtiene todos los pacientes registrados
+   * Obtiene los pacientes registrados (filtrados opcionalmente por consultorio)
+   * @param {number|null} consultorioId
    */
-  async getAll() {
+  async getAll(consultorioId = null) {
     const supabase = getSupabase();
     if (!supabase) return [];
 
-    const { data, error } = await supabase
-      .from('paciente')
-      .select('*')
-      .order('id', { ascending: false });
+    let query = supabase.from('paciente').select('*');
+
+    if (consultorioId) {
+      // Filtra por el consultorio_id asignado o pacientes generales pendientes de asignación
+      query = query.or(`consultorio_id.eq.${consultorioId},consultorio_id.is.null`);
+    }
+
+    const { data, error } = await query.order('id', { ascending: false });
 
     if (error) {
       console.error('[PatientModel] Error cargando pacientes:', error);

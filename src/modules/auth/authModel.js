@@ -24,10 +24,11 @@ export const authModel = {
 
   /**
    * Guarda la sesión del usuario (sin almacenar la clave)
-   * Incluye el indicador isAdmin verificado en user_roles
+   * Incluye el indicador isAdmin y el consultorio activo seleccionado
    */
-  saveSession(user, isAdmin = null) {
+  saveSession(user, isAdmin = null, consultorio = null) {
     if (!user) return;
+    const activeConsultorio = consultorio || user.consultorio || this.getActiveConsultorio() || null;
     const sessionData = {
       id: user.id,
       nombre: user.nombre,
@@ -36,11 +37,47 @@ export const authModel = {
       ci: user.ci || '',
       rol: user.rol || 'usuario',
       isAdmin: isAdmin !== null ? Boolean(isAdmin) : Boolean(user.rol === 'admin' || user.isAdmin === true),
+      consultorio_id: activeConsultorio?.id || user.consultorio_id || null,
+      consultorio_nombre: activeConsultorio?.nombre || user.consultorio_nombre || 'Sede Principal',
+      consultorio: activeConsultorio,
       activo: user.activo ?? true,
       logged_at: new Date().toISOString()
     };
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(sessionData));
+    if (activeConsultorio) {
+      localStorage.setItem('odk_active_consultorio', JSON.stringify(activeConsultorio));
+    }
     return sessionData;
+  },
+
+  /**
+   * Obtiene el consultorio activo actualmente
+   */
+  getActiveConsultorio() {
+    try {
+      const user = this.getCurrentUser();
+      if (user && user.consultorio) return user.consultorio;
+      const stored = localStorage.getItem('odk_active_consultorio');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Cambia el consultorio activo del usuario
+   */
+  setActiveConsultorio(consultorio) {
+    if (!consultorio) return;
+    localStorage.setItem('odk_active_consultorio', JSON.stringify(consultorio));
+    const user = this.getCurrentUser();
+    if (user) {
+      user.consultorio = consultorio;
+      user.consultorio_id = consultorio.id;
+      user.consultorio_nombre = consultorio.nombre;
+      this.saveSession(user, user.isAdmin, consultorio);
+    }
+    window.dispatchEvent(new CustomEvent('consultorio:changed', { detail: consultorio }));
   },
 
   /**
@@ -127,9 +164,10 @@ export const authModel = {
 
   /**
    * Inicio de sesión: valida credenciales contra la tabla 'usuario'
-   * Compara la clave ingresada contra el hash bcrypt guardado en Supabase.
+   * Compara la clave ingresada contra el hash bcrypt guardado en Supabase
+   * y asocia el consultorio seleccionado.
    */
-  async login(identificador, clave) {
+  async login(identificador, clave, selectedConsultorio = null) {
     const supabase = getSupabase();
     const conn = getConnectionStatus();
 
@@ -198,12 +236,13 @@ export const authModel = {
         isAdmin = user.rol === 'admin';
       }
 
-      return this.saveSession(user, isAdmin);
+      return this.saveSession(user, isAdmin, selectedConsultorio);
     }
 
     // Modo local / demo
     const current = this.getCurrentUser();
     if (current && (current.mail.toLowerCase() === cleanId || current.nombre.toLowerCase() === cleanId)) {
+      if (selectedConsultorio) this.setActiveConsultorio(selectedConsultorio);
       return current;
     }
 
@@ -215,6 +254,6 @@ export const authModel = {
       rol: 'usuario',
       activo: true
     };
-    return this.saveSession(demoUser);
+    return this.saveSession(demoUser, false, selectedConsultorio);
   }
 };

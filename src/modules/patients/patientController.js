@@ -23,6 +23,12 @@ export const patientController = {
   init() {
     this.attachEventListeners();
     this.loadConsultorios();
+
+    // Escuchar cambio de sede activa para refrescar inmediatamente la lista de pacientes
+    consultorioModel.subscribe((newConsultorio) => {
+      console.log('🏢 [PatientController] Filtrando por nueva sede:', newConsultorio?.nombre);
+      this.loadPatients();
+    });
   },
 
   attachEventListeners() {
@@ -250,6 +256,8 @@ export const patientController = {
   async loadPatients() {
     const tbody = $('#patients-table-body');
     const countLabel = $('#patients-count-label');
+    const activeConsultorio = consultorioModel.getActiveConsultorio();
+    const consultorioId = activeConsultorio?.id || null;
 
     this.isLoading = true;
     if (tbody) {
@@ -263,11 +271,12 @@ export const patientController = {
     }
 
     try {
-      this.patientsList = await patientModel.getAll();
+      this.patientsList = await patientModel.getAll(consultorioId);
       this.renderTable(this.patientsList);
 
       if (countLabel) {
-        countLabel.textContent = `${this.patientsList.length} ${this.patientsList.length === 1 ? 'paciente registrado' : 'pacientes registrados'}`;
+        const sedeText = activeConsultorio ? ` · 🏢 Sede: ${activeConsultorio.nombre}` : '';
+        countLabel.textContent = `${this.patientsList.length} ${this.patientsList.length === 1 ? 'paciente' : 'pacientes'}${sedeText}`;
       }
     } catch (err) {
       console.error('[PatientController] Error al cargar pacientes:', err);
@@ -348,6 +357,13 @@ export const patientController = {
     this.clearPhotoSelection();
     this.updateAgeBadge('');
     this.populateConsultoriosSelect();
+
+    // Seleccionar por defecto la sede activa
+    const activeConsultorio = consultorioModel.getActiveConsultorio();
+    const consultorioSelect = $('#patient-field-consultorio');
+    if (consultorioSelect && activeConsultorio?.id) {
+      consultorioSelect.value = String(activeConsultorio.id);
+    }
 
     this.openDialog('modal-patient-form');
   },
@@ -800,7 +816,8 @@ export const patientController = {
     const fecha_nacimiento = birthdateInput?.value || null;
 
     const consultorioVal = consultorioSelect?.value;
-    const consultorio_id = consultorioVal ? parseInt(consultorioVal, 10) : null;
+    const activeConsultorio = consultorioModel.getActiveConsultorio();
+    const consultorio_id = consultorioVal ? parseInt(consultorioVal, 10) : (activeConsultorio?.id ? Number(activeConsultorio.id) : null);
 
     let foto = fotoInput?.value.trim() || null;
 
