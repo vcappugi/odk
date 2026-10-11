@@ -29,6 +29,8 @@ import { quickActionsController } from './modules/quickActions/quickActionsContr
 import { patientController } from './modules/patients/patientController.js';
 import { renderAdminConfigModal } from './modules/admin/adminView.js';
 import { adminController } from './modules/admin/adminController.js';
+import { renderCitaModal } from './modules/cita/citaView.js';
+import { citaController } from './modules/cita/citaController.js';
 
 /**
  * Inicialización de la aplicación
@@ -62,6 +64,9 @@ async function bootstrapApp() {
 
   // 9. Inicializar controlador de configuración administrativa (user_roles)
   adminController.init();
+
+  // 10. Inicializar controlador de citas (CRUD calendario)
+  citaController.init();
 
   console.log('✅ ODONTOKRIS inicializado con éxito.');
 }
@@ -212,6 +217,9 @@ function mountAppLayout() {
 
     <!-- Modal Dialog para Configuración Administrativa (Admin en user_roles) -->
     ${renderAdminConfigModal()}
+
+    <!-- Modal Dialog para Citas Odontológicas (CRUD Calendario) -->
+    ${renderCitaModal()}
   `;
 }
 
