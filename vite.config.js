@@ -36,7 +36,7 @@ export default defineConfig(({ mode }) => {
     env.GOOGLE_WEBHOOK_URL ||
     env.VITE_GOOGLE_DRIVE_WEBHOOK_URL ||
     env.GOOGLE_DRIVE_WEBHOOK_URL ||
-    '';
+    'https://script.google.com/macros/s/AKfycbxURUZFZSseFvqj3scccuJlk9_gGAvZTYkKxw4GhlEA8fNknbqHcwn_dd9I_gjXWoD3/exec';
 
   const appName =
     process.env.VITE_APP_NAME ||
@@ -69,7 +69,21 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       open: false,
-      host: true
+      host: true,
+      proxy: {
+        '/api/bcv': {
+          target: 'https://www.bcv.org.ve',
+          changeOrigin: true,
+          secure: false,
+          rewrite: () => '/'
+        },
+        '/api/upload-drive': {
+          target: 'https://script.google.com/macros/s/AKfycbxURUZFZSseFvqj3scccuJlk9_gGAvZTYkKxw4GhlEA8fNknbqHcwn_dd9I_gjXWoD3/exec',
+          changeOrigin: true,
+          secure: false,
+          rewrite: () => ''
+        }
+      }
     },
     build: {
       outDir: 'dist',

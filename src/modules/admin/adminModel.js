@@ -7,6 +7,7 @@
 import bcrypt from 'bcryptjs';
 import { getSupabase, getConnectionStatus } from '../../services/supabaseClient.js';
 import { authModel } from '../auth/authModel.js';
+import { consultorioModel } from '../consultorio/consultorioModel.js';
 
 export const adminModel = {
   /**
@@ -138,17 +139,34 @@ export const adminModel = {
   },
 
   /**
-   * Obtiene la lista de doctores registrados
+   * Obtiene la lista de doctores registrados, filtrados por el consultorio activo al que se logueó
+   * @param {number|string|null} consultorioId - ID de consultorio opcional para filtrar explícitamente
    */
-  async getDoctores() {
+  async getDoctores(consultorioId = null) {
     const supabase = getSupabase();
     if (!supabase) return [];
 
     try {
-      const { data, error } = await supabase
+      // Determinar consultorio: parámetro o sede activa a la que se logueó el usuario
+      let targetConsultorioId = consultorioId;
+      if (targetConsultorioId === null || targetConsultorioId === undefined) {
+        const active = consultorioModel.getActiveConsultorio() || authModel.getActiveConsultorio();
+        if (active?.id) {
+          targetConsultorioId = Number(active.id);
+        }
+      }
+
+      let query = supabase
         .from('doctor')
         .select('*, consultorio ( id, nombre )')
         .order('id', { ascending: true });
+
+      // Filtrar para que solo se vean los doctores del consultorio logueado
+      if (targetConsultorioId && targetConsultorioId !== 'all') {
+        query = query.eq('consultorio_id', Number(targetConsultorioId));
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.warn('[AdminModel] Error listando doctores:', error);
@@ -158,6 +176,49 @@ export const adminModel = {
     } catch (err) {
       console.warn('[AdminModel] Error en getDoctores:', err);
       return [];
+    }
+  },
+
+  /**
+   * Obtiene todos los doctores sin filtro de consultorio
+   */
+  async getAllDoctores() {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from('doctor')
+        .select('*, consultorio ( id, nombre )')
+        .order('id', { ascending: true });
+
+      if (error) return [];
+      return data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * Obtiene un doctor por su ID
+   * @param {number|string} id
+   */
+  async getDoctorById(id) {
+    if (!id) return null;
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('doctor')
+        .select('*, consultorio ( id, nombre )')
+        .eq('id', Number(id))
+        .single();
+
+      if (error) return null;
+      return data;
+    } catch {
+      return null;
     }
   },
 
@@ -176,20 +237,62 @@ export const adminModel = {
       throw new Error('El nombre del doctor es obligatorio.');
     }
 
+    // Si no se especificó consultorio_id, usar la sede activa del usuario logueado
+    const activeConsultorio = consultorioModel.getActiveConsultorio() || authModel.getActiveConsultorio();
+    const resolvedConsultorioId = consultorio_id ? Number(consultorio_id) : (activeConsultorio?.id ? Number(activeConsultorio.id) : null);
+
     const payload = {
       nombre: cleanNombre,
       telefono: cleanTelefono || null,
       mail: cleanMail || null,
-      consultorio_id: consultorio_id ? Number(consultorio_id) : null
+      consultorio_id: resolvedConsultorioId
     };
 
     const { data, error } = await supabase
       .from('doctor')
       .insert([payload])
-      .select();
+      .select('*, consultorio ( id, nombre )');
 
     if (error) {
       throw new Error(`Error al registrar doctor: ${error.message}`);
+    }
+
+    return data?.[0] || null;
+  },
+
+  /**
+   * Actualiza los datos de un doctor existente
+   */
+  async updateDoctor(id, { nombre, telefono, mail, consultorio_id }) {
+    const supabase = getSupabase();
+    if (!supabase) throw new Error('Cliente Supabase no disponible.');
+
+    const cleanNombre = nombre?.trim();
+    const cleanTelefono = (telefono || '').trim();
+    const cleanMail = (mail || '').trim().toLowerCase();
+
+    if (!cleanNombre) {
+      throw new Error('El nombre del doctor es obligatorio.');
+    }
+
+    const payload = {
+      nombre: cleanNombre,
+      telefono: cleanTelefono || null,
+      mail: cleanMail || null
+    };
+
+    if (consultorio_id !== undefined) {
+      payload.consultorio_id = consultorio_id ? Number(consultorio_id) : null;
+    }
+
+    const { data, error } = await supabase
+      .from('doctor')
+      .update(payload)
+      .eq('id', Number(id))
+      .select('*, consultorio ( id, nombre )');
+
+    if (error) {
+      throw new Error(`Error al actualizar doctor: ${error.message}`);
     }
 
     return data?.[0] || null;
@@ -205,7 +308,7 @@ export const adminModel = {
     const { error } = await supabase
       .from('doctor')
       .delete()
-      .eq('id', id);
+      .eq('id', Number(id));
 
     if (error) {
       throw new Error(`Error al eliminar doctor: ${error.message}`);
@@ -224,7 +327,7 @@ export const adminModel = {
       // 1. Obtener usuarios
       const { data: users, error: uError } = await supabase
         .from('usuario')
-        .select('id, nombre, mail, ci, telefono, activo, rol, created_at')
+        .select('id, nombre, mail, ci, telefono, activo, rol, consultorio_id, created_at')
         .order('id', { ascending: true });
 
       if (uError) {
@@ -435,7 +538,7 @@ export const adminModel = {
    * Registra un nuevo usuario en la tabla 'usuario' y asigna su rol en 'user_roles'
    * @param {Object} userData
    */
-  async createUser({ nombre, mail, clave, ci, telefono, rol = 'user', role_id = null, activo = true }) {
+  async createUser({ nombre, mail, clave, ci, telefono, rol = 'user', role_id = null, consultorio_id = null, activo = true }) {
     const supabase = getSupabase();
     if (!supabase) throw new Error('Cliente Supabase no disponible.');
 
@@ -504,6 +607,7 @@ export const adminModel = {
         ci: cleanCi,
         telefono: telefono?.trim() || null,
         rol: resolvedRoleName,
+        consultorio_id: consultorio_id ? Number(consultorio_id) : null,
         activo: Boolean(activo)
       }])
       .select();
@@ -532,7 +636,7 @@ export const adminModel = {
    * @param {number} userId
    * @param {Object} userData
    */
-  async updateUser(userId, { nombre, mail, clave, ci, telefono, rol = 'user', role_id = null, activo = true }) {
+  async updateUser(userId, { nombre, mail, clave, ci, telefono, rol = 'user', role_id = null, consultorio_id = undefined, activo = true }) {
     const supabase = getSupabase();
     if (!supabase) throw new Error('Cliente Supabase no disponible.');
 
@@ -573,6 +677,10 @@ export const adminModel = {
       rol: resolvedRoleName,
       activo: Boolean(activo)
     };
+
+    if (consultorio_id !== undefined) {
+      payload.consultorio_id = consultorio_id ? Number(consultorio_id) : null;
+    }
 
     // Si se especificó una nueva contraseña, encriptarla
     if (clave && clave.trim().length > 0) {

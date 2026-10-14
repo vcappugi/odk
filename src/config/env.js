@@ -73,7 +73,7 @@ export const env = {
       'GOOGLE_DRIVE_WEBHOOK_URL'
     ],
     typeof __INJECTED_GOOGLE_DRIVE_URL__ !== 'undefined' ? __INJECTED_GOOGLE_DRIVE_URL__ : '',
-    ''
+    'https://script.google.com/macros/s/AKfycbxURUZFZSseFvqj3scccuJlk9_gGAvZTYkKxw4GhlEA8fNknbqHcwn_dd9I_gjXWoD3/exec'
   ),
 
   /**

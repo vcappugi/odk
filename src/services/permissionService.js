@@ -331,10 +331,19 @@ class PermissionService {
     if (btnSubmitRole) {
       btnSubmitRole.style.display = canWriteRoles ? 'inline-flex' : 'none';
     }
-    const btnSavePerms = $('#btn-save-role-perms');
-    if (btnSavePerms) {
-      btnSavePerms.style.display = canWriteRoles ? 'inline-flex' : 'none';
-    }
+    // e. Tasas de Cambio ('admin-section-tasa')
+    const canTasa = this.canRead('admin-section-tasa');
+    const canWriteTasa = this.canWrite('admin-section-tasa');
+    const navTasa = $('#admin-nav-tasa');
+    const cardTasa = $('#btn-admin-open-tasa');
+    if (navTasa) navTasa.style.display = canTasa ? 'inline-flex' : 'none';
+    if (cardTasa) cardTasa.style.display = canTasa ? 'block' : 'none';
+    const btnNewTasa = $('#btn-admin-new-tasa');
+    if (btnNewTasa) btnNewTasa.style.display = canWriteTasa ? 'inline-flex' : 'none';
+    const btnQuickScrape = $('#btn-quick-scrape-new');
+    if (btnQuickScrape) btnQuickScrape.style.display = canWriteTasa ? 'inline-flex' : 'none';
+    const btnSubmitTasa = $('#btn-submit-tasa');
+    if (btnSubmitTasa) btnSubmitTasa.style.display = canWriteTasa ? 'inline-flex' : 'none';
   }
 }
 

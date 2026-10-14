@@ -23,17 +23,7 @@ export const authController = {
         e.target.closest('#btn-hero-login') ||
         e.target.closest('.btn-auth-trigger')
       ) {
-        this.openModal('login');
-      }
-    });
-
-    // Abrir modal en modo Registro
-    document.addEventListener('click', (e) => {
-      if (
-        e.target.closest('#btn-open-register-modal') ||
-        e.target.closest('#btn-hero-register')
-      ) {
-        this.openModal('register');
+        this.openModal();
       }
     });
 
@@ -41,18 +31,6 @@ export const authController = {
     document.addEventListener('click', (e) => {
       if (e.target.closest('.btn-close-auth-dialog')) {
         this.closeModal();
-      }
-    });
-
-    // Cambio de pestañas
-    document.addEventListener('click', (e) => {
-      if (e.target.closest('#tab-btn-login') || e.target.closest('#link-go-to-login')) {
-        e.preventDefault();
-        this.switchTab('login');
-      }
-      if (e.target.closest('#tab-btn-register') || e.target.closest('#link-go-to-register')) {
-        e.preventDefault();
-        this.switchTab('register');
       }
     });
 
@@ -83,15 +61,6 @@ export const authController = {
       });
     }
 
-    // Submit de Auto-Registro
-    const registerForm = $('#register-form');
-    if (registerForm) {
-      registerForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await this.handleRegister();
-      });
-    }
-
     // Cerrar sesión con el botón 'Sesión Activa' y activar login
     document.addEventListener('click', (e) => {
       if (e.target.closest('#btn-toggle-session') || e.target.closest('#btn-logout')) {
@@ -114,17 +83,37 @@ export const authController = {
         await this.handleSwitchConsultorio();
       });
     }
+
+    // Actualizar dinámicamente los consultorios permitidos según el usuario ingresado
+    let debounceTimer = null;
+    document.addEventListener('input', (e) => {
+      if (e.target && e.target.id === 'login-identifier') {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          this.loadConsultoriosSelect(e.target.value);
+        }, 220);
+      }
+    });
+
+    document.addEventListener('change', (e) => {
+      if (e.target && e.target.id === 'login-identifier') {
+        clearTimeout(debounceTimer);
+        this.loadConsultoriosSelect(e.target.value);
+      }
+    });
+
+    // Reaccionar a cambios globales de autenticación
+    window.addEventListener('auth:change', () => {
+      this.updateUserInterface();
+    });
   },
 
-  async openModal(mode = 'login') {
+  async openModal() {
     const dialog = $('#auth-dialog');
     if (!dialog) return;
 
-    this.switchTab(mode);
-
-    if (mode === 'login') {
-      await this.loadConsultoriosSelect();
-    }
+    const currentId = $('#login-identifier')?.value || '';
+    await this.loadConsultoriosSelect(currentId);
 
     if (typeof dialog.showModal === 'function') {
       dialog.showModal();
@@ -134,28 +123,76 @@ export const authController = {
   },
 
   /**
-   * Carga las sedes registradas en el selector del formulario de login
+   * Carga los consultorios a los que el usuario tiene acceso según el campo Consultorio_ID.
+   * En caso de que Consultorio_ID esté vacío, muestra todos los consultorios disponibles.
+   * Si tiene un consultorio asignado específico, muestra únicamente ese consultorio y lo auto-selecciona.
+   * @param {string} identifier (opcional, usuario o correo)
    */
-  async loadConsultoriosSelect() {
+  async loadConsultoriosSelect(identifier = '') {
     const select = $('#login-consultorio');
+    const hintEl = $('#login-consultorio-hint');
     if (!select) return;
 
+    const cleanId = (identifier || $('#login-identifier')?.value || '').trim();
+
     try {
-      const consultorios = await consultorioModel.getAll();
+      const { consultorios, hasFullAccess, userFound } =
+        await authModel.getConsultoriosForIdentifier(cleanId);
+
       const active = authModel.getActiveConsultorio();
 
       if (!consultorios || consultorios.length === 0) {
         select.innerHTML = `
-          <option value="1">🏢 Consultorio Principal (Por defecto)</option>
+          <option value="">⚠️ No hay consultorios autorizados</option>
         `;
+        select.disabled = true;
+        if (hintEl) {
+          hintEl.textContent = '⚠️ No se encontraron sedes registradas para este usuario.';
+          hintEl.style.color = '#ef4444';
+        }
         return;
       }
 
-      select.innerHTML = consultorios.map(c => `
-        <option value="${c.id}" ${active && active.id === c.id ? 'selected' : ''}>
-          🏢 ${c.nombre} ${c.direccion ? `(${c.direccion})` : ''}
-        </option>
-      `).join('');
+      select.disabled = false;
+
+      if (userFound && !hasFullAccess) {
+        // Usuario con consultorio restringido específicamente
+        select.innerHTML = consultorios.map(c => `
+          <option value="${c.id}" selected>
+            🏢 ${c.nombre} ${c.direccion ? `(${c.direccion})` : ''}
+          </option>
+        `).join('');
+
+        if (hintEl) {
+          const sedeNombre = consultorios[0]?.nombre || 'Sede asignada';
+          hintEl.innerHTML = `🔒 <strong>Sede asignada:</strong> Tu usuario tiene acceso exclusivo a <em>${sedeNombre}</em>.`;
+          hintEl.style.color = 'var(--yeti-color-primary, #0284c7)';
+        }
+      } else if (userFound && hasFullAccess) {
+        // Usuario con Consultorio_ID vacío (acceso a todos los consultorios)
+        select.innerHTML = consultorios.map(c => `
+          <option value="${c.id}" ${active && active.id === c.id ? 'selected' : ''}>
+            🏢 ${c.nombre} ${c.direccion ? `(${c.direccion})` : ''}
+          </option>
+        `).join('');
+
+        if (hintEl) {
+          hintEl.innerHTML = `🌐 <strong>Acceso global:</strong> Tu cuenta tiene acceso a todas las sedes. Selecciona la sede para esta sesión.`;
+          hintEl.style.color = '#10b981';
+        }
+      } else {
+        // Aún no se ha verificado el usuario (campo vacío o mientras escribe)
+        select.innerHTML = consultorios.map(c => `
+          <option value="${c.id}" ${active && active.id === c.id ? 'selected' : ''}>
+            🏢 ${c.nombre} ${c.direccion ? `(${c.direccion})` : ''}
+          </option>
+        `).join('');
+
+        if (hintEl) {
+          hintEl.innerHTML = `📌 Ingresa tu usuario o correo arriba para cargar tus sedes autorizadas.`;
+          hintEl.style.color = '';
+        }
+      }
     } catch (err) {
       console.warn('[AuthController] Error cargando consultorios en login:', err);
       select.innerHTML = `<option value="1">🏢 Consultorio Principal</option>`;
@@ -163,7 +200,8 @@ export const authController = {
   },
 
   /**
-   * Abre modal para cambiar de sede con la sesión activa
+   * Abre modal para cambiar de sede con la sesión activa,
+   * respetando si el usuario tiene asignada una sede específica o acceso a todas.
    */
   async openSwitchConsultorioModal() {
     const dialog = $('#dialog-switch-consultorio');
@@ -171,8 +209,24 @@ export const authController = {
     if (!dialog || !select) return;
 
     try {
-      const consultorios = await consultorioModel.getAll();
+      const user = authModel.getCurrentUser();
+      const rawUserConsultorio = user?.user_consultorio_id ?? user?.Consultorio_ID ?? null;
+      const isConsultorioEmpty = rawUserConsultorio === null || rawUserConsultorio === undefined || String(rawUserConsultorio).trim() === '' || Number(rawUserConsultorio) === 0;
+
+      const allConsultorios = await consultorioModel.getAll();
       const current = authModel.getActiveConsultorio();
+
+      let consultorios = allConsultorios;
+      if (!isConsultorioEmpty) {
+        const allowedIds = String(rawUserConsultorio).split(',').map(s => s.trim());
+        consultorios = allConsultorios.filter(c => allowedIds.includes(String(c.id)));
+      }
+
+      if (!isConsultorioEmpty && consultorios.length <= 1) {
+        const sedeName = consultorios[0]?.nombre || 'tu consultorio asignado';
+        notificationService.info(`Tu cuenta está asignada exclusivamente a: ${sedeName}.`);
+        return;
+      }
 
       if (!consultorios || consultorios.length === 0) {
         select.innerHTML = `<option value="1">🏢 Consultorio Principal</option>`;
@@ -238,38 +292,8 @@ export const authController = {
     }
   },
 
-  switchTab(tab) {
-    const loginBtn = $('#tab-btn-login');
-    const registerBtn = $('#tab-btn-register');
-    const loginForm = $('#login-form');
-    const registerForm = $('#register-form');
-    const title = $('#auth-modal-title');
-
-    if (tab === 'login') {
-      loginBtn?.setAttribute('data-paint', 'primary');
-      loginBtn?.removeAttribute('data-variant');
-      loginBtn?.classList.add('active');
-
-      registerBtn?.setAttribute('data-variant', 'ghost');
-      registerBtn?.removeAttribute('data-paint');
-      registerBtn?.classList.remove('active');
-
-      if (loginForm) loginForm.style.display = 'flex';
-      if (registerForm) registerForm.style.display = 'none';
-      if (title) title.textContent = 'Iniciar Sesión';
-    } else {
-      registerBtn?.setAttribute('data-paint', 'success');
-      registerBtn?.removeAttribute('data-variant');
-      registerBtn?.classList.add('active');
-
-      loginBtn?.setAttribute('data-variant', 'ghost');
-      loginBtn?.removeAttribute('data-paint');
-      loginBtn?.classList.remove('active');
-
-      if (loginForm) loginForm.style.display = 'none';
-      if (registerForm) registerForm.style.display = 'flex';
-      if (title) title.textContent = 'Auto-Registro de Usuario';
-    }
+  switchTab() {
+    // La opción de auto-registro fue removida del modal
   },
 
   async handleLogin() {
@@ -306,9 +330,10 @@ export const authController = {
       }
 
       const user = await authModel.login(identifier, password, selectedConsultorio);
-      consultorioModel.setActiveConsultorio(selectedConsultorio);
+      const activeSede = user.consultorio || selectedConsultorio;
+      consultorioModel.setActiveConsultorio(activeSede);
 
-      notificationService.success(`¡Bienvenido de nuevo, ${user.nombre || user.mail}! (Sede: ${selectedConsultorio.nombre})`);
+      notificationService.success(`¡Bienvenido de nuevo, ${user.nombre || user.mail}! (Sede: ${activeSede.nombre})`);
       this.closeModal();
       this.updateUserInterface();
     } catch (err) {
@@ -316,46 +341,6 @@ export const authController = {
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Iniciar Sesión';
-    }
-  },
-
-  async handleRegister() {
-    const nombre = $('#reg-nombre').value.trim();
-    const mail = $('#reg-mail').value.trim();
-    const ci = $('#reg-ci').value.trim();
-    const telefono = $('#reg-telefono').value.trim();
-    const password = $('#reg-password').value;
-    const confirm = $('#reg-password-confirm').value;
-    const submitBtn = $('#btn-submit-register');
-
-    if (!nombre || !mail || !password) {
-      notificationService.warning('Nombre, correo y contraseña son obligatorios.');
-      return;
-    }
-
-    if (password !== confirm) {
-      notificationService.warning('Las contraseñas no coinciden.');
-      return;
-    }
-
-    if (password.length < 6) {
-      notificationService.warning('La contraseña debe tener mínimo 6 caracteres.');
-      return;
-    }
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Encriptando y registrando...';
-
-    try {
-      const user = await authModel.register({ nombre, mail, clave: password, ci, telefono });
-      notificationService.success(`¡Cuenta creada con éxito! Bienvenido, ${user.nombre}. Tu clave ha sido encriptada con bcrypt.`);
-      this.closeModal();
-      this.updateUserInterface();
-    } catch (err) {
-      notificationService.error(err.message || 'Error al registrar usuario.');
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Registrar Cuenta';
     }
   },
 
@@ -370,12 +355,30 @@ export const authController = {
     notificationService.info('Sesión cerrada.');
     this.updateUserInterface();
     // En caso de sesión cerrada, activa el login para iniciar sesión
-    this.openModal('login');
+    this.openModal();
   },
 
   updateUserInterface() {
     const user = authModel.getCurrentUser();
+    const isAuth = Boolean(user);
     const mainUserDisplay = $('#main-user-display');
+
+    // Actualizar estado de autenticación en el layout para control CSS y accesibilidad
+    const layoutEl = $('.odontokris-layout');
+    if (layoutEl) {
+      layoutEl.setAttribute('data-auth-status', isAuth ? 'authenticated' : 'unauthenticated');
+    }
+
+    // Alternar visibilidad entre la pantalla para usuarios no autenticados y la vista de trabajo
+    const guestView = $('#guest-welcome-view');
+    const authView = $('#authenticated-app-view');
+
+    if (guestView) {
+      guestView.style.display = isAuth ? 'none' : 'flex';
+    }
+    if (authView) {
+      authView.style.display = isAuth ? '' : 'none';
+    }
 
     if (!mainUserDisplay) return;
 
@@ -408,16 +411,12 @@ export const authController = {
         </div>
       `;
     } else {
-      // Sin autenticar: botones que activan el login o registro
+      // Sin autenticar: botón de acceso
       mainUserDisplay.innerHTML = `
         <div class="portal-buttons-grid">
           <button type="button" id="btn-hero-login" class="button btn-portal-primary" data-paint="primary">
             <span class="btn-icon">🔑</span>
             <span>Iniciar Sesión</span>
-          </button>
-          <button type="button" id="btn-hero-register" class="button btn-portal-secondary" data-variant="outlined">
-            <span class="btn-icon">📝</span>
-            <span>Auto-Registro</span>
           </button>
         </div>
       `;

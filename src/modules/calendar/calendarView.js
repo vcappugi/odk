@@ -1,6 +1,8 @@
 /**
  * Vista del Calendario Odontológico (Calendar View)
  * Genera el marcado para las vistas de Mes, Semana y Día con datos reales de la tabla 'cita'.
+ * Asigna colores diferenciados a cada doctor, oculta datos sensibles de pacientes cuando no se está logueado
+ * y genera la leyenda interactiva.
  */
 
 const DAYS_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -8,6 +10,105 @@ const MONTHS_NAMES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
+
+/**
+ * Paleta de colores armoniosa para diferenciar doctores
+ */
+export const DOCTOR_PALETTES = [
+  { id: 0, className: 'doc-color-0', border: '#0284c7', bg: 'rgba(2, 132, 199, 0.14)', text: '#0284c7', name: 'Azul Océano' },
+  { id: 1, className: 'doc-color-1', border: '#059669', bg: 'rgba(16, 185, 129, 0.14)', text: '#059669', name: 'Verde Esmeralda' },
+  { id: 2, className: 'doc-color-2', border: '#7c3aed', bg: 'rgba(139, 92, 246, 0.14)', text: '#7c3aed', name: 'Púrpura Amatista' },
+  { id: 3, className: 'doc-color-3', border: '#d97706', bg: 'rgba(245, 158, 11, 0.15)', text: '#b45309', name: 'Ámbar Cálido' },
+  { id: 4, className: 'doc-color-4', border: '#e11d48', bg: 'rgba(244, 63, 94, 0.14)', text: '#e11d48', name: 'Rosa Coral' },
+  { id: 5, className: 'doc-color-5', border: '#0d9488', bg: 'rgba(20, 184, 166, 0.14)', text: '#0d9488', name: 'Verde Turquesa' },
+  { id: 6, className: 'doc-color-6', border: '#4f46e5', bg: 'rgba(99, 102, 241, 0.14)', text: '#4f46e5', name: 'Índigo Profundo' },
+  { id: 7, className: 'doc-color-7', border: '#c026d3', bg: 'rgba(217, 70, 239, 0.14)', text: '#c026d3', name: 'Fucsia Rubí' },
+  { id: 8, className: 'doc-color-8', border: '#0891b2', bg: 'rgba(6, 182, 212, 0.14)', text: '#0891b2', name: 'Cian Glaciar' },
+  { id: 9, className: 'doc-color-9', border: '#ea580c', bg: 'rgba(249, 115, 22, 0.14)', text: '#ea580c', name: 'Naranja Cítrico' },
+  { id: 10, className: 'doc-color-10', border: '#65a30d', bg: 'rgba(132, 204, 22, 0.15)', text: '#65a30d', name: 'Verde Lima' },
+  { id: 11, className: 'doc-color-11', border: '#b45309', bg: 'rgba(180, 83, 9, 0.14)', text: '#b45309', name: 'Canela Bronce' },
+];
+
+/**
+ * Obtiene los metadatos de color asignados a un doctor
+ * @param {number|string|null} doctorId
+ */
+export function getDoctorColorMeta(doctorId) {
+  if (doctorId === null || doctorId === undefined || doctorId === '' || doctorId === 'unassigned') {
+    return {
+      className: 'doc-color-neutral',
+      border: '#64748b',
+      bg: 'rgba(100, 116, 139, 0.14)',
+      text: '#64748b',
+      name: 'Sin Asignar'
+    };
+  }
+  const num = typeof doctorId === 'number' ? doctorId : parseInt(String(doctorId).replace(/\D/g, ''), 10);
+  let idx = 0;
+  if (!isNaN(num) && num > 0) {
+    idx = (num - 1) % DOCTOR_PALETTES.length;
+  } else {
+    let hash = 0;
+    const str = String(doctorId);
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    idx = Math.abs(hash) % DOCTOR_PALETTES.length;
+  }
+  return DOCTOR_PALETTES[idx];
+}
+
+/**
+ * Nombre completo formateado del doctor
+ */
+export function getDoctorDisplayName(doctor) {
+  if (!doctor || !doctor.nombre) return 'Sin doctor asignado';
+  const name = doctor.nombre.trim();
+  if (/^dr/i.test(name)) return name;
+  return `Dr(a). ${name}`;
+}
+
+/**
+ * Nombre abreviado para chips compactos
+ */
+export function getDoctorShortName(doctor) {
+  if (!doctor || !doctor.nombre) return 'Sin Dr.';
+  let name = doctor.nombre.trim().replace(/^dr(a)?\.?\s*/i, '');
+  const parts = name.split(/\s+/);
+  if (parts.length === 1) return `Dr. ${parts[0]}`;
+  return `Dr. ${parts[parts.length - 1]}`;
+}
+
+/**
+ * Procesa la información del paciente y la observación protegiendo la privacidad si no hay sesión activa.
+ * Cuando NO está logueado se muestra 'Ocupado' en lugar del nombre del paciente.
+ * @param {Object} cita
+ * @param {boolean} isAuthenticated
+ */
+export function getAppointmentDisplayInfo(cita, isAuthenticated) {
+  if (!isAuthenticated) {
+    return {
+      paciente: 'Ocupado',
+      pacienteFull: 'Ocupado',
+      pacienteCi: '',
+      observacion: 'Horario reservado',
+      isMasked: true
+    };
+  }
+
+  const pName = cita.paciente?.nombre?.trim() || 'Paciente sin nombre';
+  const pCi = cita.paciente?.ci ? `(CI: ${cita.paciente.ci})` : '';
+  const obs = cita.observacion?.trim() || 'Consulta odontológica';
+
+  return {
+    paciente: pName,
+    pacienteFull: pName,
+    pacienteCi: pCi,
+    observacion: obs,
+    isMasked: false
+  };
+}
 
 /**
  * Formatea una fecha local a formato 'YYYY-MM-DD'
@@ -85,9 +186,10 @@ export const calendarView = {
    * 1. RENDER VISTA POR MES
    * @param {Date} activeDate
    * @param {Date} todayDate
-   * @param {Array} citas - Citas reales de Supabase
+   * @param {Array} citas - Citas filtradas
+   * @param {Object} options - { isAuthenticated }
    */
-  renderMonthView(activeDate, todayDate, citas = []) {
+  renderMonthView(activeDate, todayDate, citas = [], { isAuthenticated = false } = {}) {
     const year = activeDate.getFullYear();
     const month = activeDate.getMonth();
 
@@ -126,12 +228,27 @@ export const calendarView = {
       if (dayCitas.length > 0) {
         appointmentsHtml = `
           <div class="cal-month-citas-list stack" data-gap="2xs">
-            ${dayCitas.slice(0, 3).map(c => `
-              <div class="cal-month-cita-chip" data-cita-id="${c.id}" title="${c.hora_desde?.slice(0, 5)}: ${c.paciente?.nombre || 'Paciente'}">
-                <span class="chip-time">${c.hora_desde ? c.hora_desde.slice(0, 5) : ''}</span>
-                <span class="chip-patient">${c.paciente?.nombre || 'Paciente'}</span>
-              </div>
-            `).join('')}
+            ${dayCitas.slice(0, 3).map(c => {
+              const colorMeta = getDoctorColorMeta(c.doctor_id);
+              const docFull = getDoctorDisplayName(c.doctor);
+              const docShort = getDoctorShortName(c.doctor);
+              const hora = c.hora_desde ? c.hora_desde.slice(0, 5) : '';
+              const info = getAppointmentDisplayInfo(c, isAuthenticated);
+
+              const statusText = c.estatus ? 'Atendida' : 'Pendiente';
+              const statusCheck = c.estatus ? '<span class="chip-status-check" title="Atendida">✓</span> ' : '';
+
+              return `
+                <div class="cal-month-cita-chip ${colorMeta.className} ${info.isMasked ? 'is-masked' : ''} ${c.estatus ? 'is-atendida' : 'is-pendiente'}" 
+                     data-cita-id="${c.id}" 
+                     title="🩺 ${docFull}&#10;⏰ ${hora}&#10;👤 ${info.paciente}&#10;📌 Estatus: ${statusText}">
+                  <span class="chip-dot" style="background-color: var(--doc-border);"></span>
+                  <span class="chip-time">${hora}</span>
+                  <span class="chip-patient">${info.isMasked ? '🔒 ' : ''}${statusCheck}${info.paciente}</span>
+                  <span class="chip-doc">${docShort}</span>
+                </div>
+              `;
+            }).join('')}
             ${dayCitas.length > 3 ? `<span class="citas-more-badge">+${dayCitas.length - 3} más</span>` : ''}
           </div>
         `;
@@ -196,9 +313,10 @@ export const calendarView = {
    * 2. RENDER VISTA POR SEMANA
    * @param {Date} activeDate
    * @param {Date} todayDate
-   * @param {Array} citas - Citas reales de Supabase
+   * @param {Array} citas - Citas filtradas
+   * @param {Object} options - { isAuthenticated }
    */
-  renderWeekView(activeDate, todayDate, citas = []) {
+  renderWeekView(activeDate, todayDate, citas = [], { isAuthenticated = false } = {}) {
     const weekDays = this.getWeekDays(activeDate);
 
     const columnsHtml = weekDays.map((d, index) => {
@@ -213,13 +331,36 @@ export const calendarView = {
 
       let appointmentsHtml = '';
       if (dayCitas.length > 0) {
-        appointmentsHtml = dayCitas.map(c => `
-          <div class="cal-appointment-card" data-cita-id="${c.id}" title="Clic para modificar o eliminar">
-            <time class="app-time">⏰ ${c.hora_desde ? c.hora_desde.slice(0, 5) : ''} - ${c.hora_hasta ? c.hora_hasta.slice(0, 5) : ''}</time>
-            <strong class="app-patient">👤 ${c.paciente?.nombre || 'Paciente'}</strong>
-            <span class="app-treatment">${c.observacion || (c.doctor?.nombre ? 'Dr(a). ' + c.doctor.nombre : 'Consulta')}</span>
-          </div>
-        `).join('');
+        appointmentsHtml = dayCitas.map(c => {
+          const colorMeta = getDoctorColorMeta(c.doctor_id);
+          const docFull = getDoctorDisplayName(c.doctor);
+          const docShort = getDoctorShortName(c.doctor);
+          const horaDesde = c.hora_desde ? c.hora_desde.slice(0, 5) : '';
+          const horaHasta = c.hora_hasta ? c.hora_hasta.slice(0, 5) : '';
+          const info = getAppointmentDisplayInfo(c, isAuthenticated);
+
+          const statusBadge = c.estatus 
+            ? `<span class="badge-status-pill badge-status-atendida" title="Cita Atendida">🟢 Atendida</span>` 
+            : `<span class="badge-status-pill badge-status-pendiente" title="Cita Pendiente">🟡 Pendiente</span>`;
+
+          return `
+            <div class="cal-appointment-card ${colorMeta.className} ${info.isMasked ? 'is-masked' : ''}" 
+                 data-cita-id="${c.id}" 
+                 title="🩺 ${docFull} — ${info.paciente} (${c.estatus ? 'Atendida' : 'Pendiente'})">
+              <div class="app-card-header cluster" data-justify="between" data-align="center">
+                <time class="app-time">⏰ ${horaDesde} - ${horaHasta}</time>
+                <div class="cluster" data-gap="2xs" data-align="center">
+                  ${statusBadge}
+                  <span class="badge-doctor-pill" style="background-color: var(--doc-border); color: #fff;" title="${docFull}">
+                    🩺 ${docShort}
+                  </span>
+                </div>
+              </div>
+              <strong class="app-patient">${info.isMasked ? '🔒 ' : '👤 '}${info.paciente}</strong>
+              <span class="app-treatment">${info.observacion}</span>
+            </div>
+          `;
+        }).join('');
       }
 
       return `
@@ -257,9 +398,10 @@ export const calendarView = {
    * 3. RENDER VISTA POR DÍA
    * @param {Date} activeDate
    * @param {Date} todayDate
-   * @param {Array} citas - Citas reales de Supabase
+   * @param {Array} citas - Citas filtradas
+   * @param {Object} options - { isAuthenticated }
    */
-  renderDayView(activeDate, todayDate, citas = []) {
+  renderDayView(activeDate, todayDate, citas = [], { isAuthenticated = false } = {}) {
     const dateStr = toLocalDateStr(activeDate);
     const isToday = this.isSameDay(activeDate, todayDate);
 
@@ -296,26 +438,45 @@ export const calendarView = {
         <div class="cal-hour-row cluster" data-gap="sm" data-align="center">
           <div class="hour-label">${h.label}</div>
           <div class="hour-content stack" data-gap="xs">
-            ${slotCitas.length > 0 ? slotCitas.map(c => `
-              <div class="day-agenda-card box cluster" 
-                   data-surface="raised" 
-                   data-border 
-                   data-justify="between" 
-                   data-align="center"
-                   data-cita-id="${c.id}"
-                   title="Clic para modificar o eliminar cita">
-                <div class="stack" data-gap="2xs">
-                  <strong class="agenda-patient">🦷 👤 ${c.paciente?.nombre || 'Paciente sin nombre'} ${c.paciente?.ci ? `(CI: ${c.paciente.ci})` : ''}</strong>
-                  <span class="agenda-treatment">
-                    ⏰ <strong>${c.hora_desde?.slice(0, 5)} - ${c.hora_hasta?.slice(0, 5)}</strong> | ${c.observacion || 'Consulta odontológica'}
-                  </span>
+            ${slotCitas.length > 0 ? slotCitas.map(c => {
+              const colorMeta = getDoctorColorMeta(c.doctor_id);
+              const docFull = getDoctorDisplayName(c.doctor);
+              const horaDesde = c.hora_desde?.slice(0, 5) || '';
+              const horaHasta = c.hora_hasta?.slice(0, 5) || '';
+              const info = getAppointmentDisplayInfo(c, isAuthenticated);
+
+              return `
+                <div class="day-agenda-card box cluster ${colorMeta.className} ${info.isMasked ? 'is-masked' : ''}" 
+                     data-surface="raised" 
+                     data-border 
+                     data-justify="between" 
+                     data-align="center"
+                     data-cita-id="${c.id}"
+                     title="${info.isMasked ? 'Horario ocupado' : (c.estatus ? 'Cita Atendida (No alterable) — Clic para consultar o cobrar' : 'Clic para modificar o eliminar cita')}">
+                  <div class="stack" data-gap="2xs">
+                    <strong class="agenda-patient">🦷 ${info.isMasked ? '🔒 ' : '👤 '}${info.pacienteFull} ${info.pacienteCi}</strong>
+                    <span class="agenda-treatment">
+                      ⏰ <strong>${horaDesde} - ${horaHasta}</strong> | ${info.observacion}
+                    </span>
+                  </div>
+                  <div class="cluster" data-gap="xs" data-align="center">
+                    <span class="badge-status-pill ${c.estatus ? 'badge-status-atendida' : 'badge-status-pendiente'}" title="Estatus: ${c.estatus ? 'Atendida (No alterable)' : 'Pendiente'}">
+                      ${c.estatus ? '🟢 Atendida' : '🟡 Pendiente'}
+                    </span>
+                    <span class="badge badge-doctor-pill" style="background-color: var(--doc-border); color: #fff;">
+                      🩺 ${docFull}
+                    </span>
+                    ${info.isMasked ? `
+                      <span class="badge" data-paint="neutral" title="Inicie sesión para gestionar">🔒 Reservado</span>
+                    ` : c.estatus ? `
+                      <span class="badge" data-paint="primary" style="cursor: pointer;" title="Cita Atendida — Clic para ver o liquidar cobro">👁️ Atendida / Cobro</span>
+                    ` : `
+                      <span class="badge" data-paint="success" style="cursor: pointer;">✏️ Modificar</span>
+                    `}
+                  </div>
                 </div>
-                <div class="cluster" data-gap="xs">
-                  ${c.doctor?.nombre ? `<span class="badge" data-paint="primary">🩺 Dr(a). ${c.doctor.nombre}</span>` : ''}
-                  <span class="badge" data-paint="success" style="cursor: pointer;">✏️ Modificar</span>
-                </div>
-              </div>
-            `).join('') : `
+              `;
+            }).join('') : `
               <div class="hour-empty-slot clickable-empty-slot" 
                    data-action="add-cita" 
                    data-date="${dateStr}" 
@@ -351,6 +512,64 @@ export const calendarView = {
         <div class="cal-day-timeline stack" data-gap="xs">
           ${timeSlotsHtml}
         </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Genera el HTML de la barra de leyenda de doctores interactiva
+   * @param {Array} doctors - Lista de doctores registrados
+   * @param {string|number} selectedDoctorId - ID del doctor filtrado actualmente o 'all'
+   * @param {number} totalCitas - Total de citas en el periodo/sistema
+   * @param {number} unassignedCount - Total de citas sin doctor
+   */
+  renderDoctorLegend(doctors = [], selectedDoctorId = 'all', totalCitas = 0, unassignedCount = 0) {
+    if (!doctors || doctors.length === 0) {
+      return '';
+    }
+
+    const allActive = (!selectedDoctorId || selectedDoctorId === 'all') ? 'is-active' : '';
+
+    const doctorChips = doctors.map(d => {
+      const colorMeta = getDoctorColorMeta(d.id);
+      const isActive = String(selectedDoctorId) === String(d.id) ? 'is-active' : '';
+      const docShort = getDoctorShortName(d);
+      return `
+        <button type="button" 
+                class="legend-chip ${colorMeta.className} ${isActive}" 
+                data-doctor-id="${d.id}"
+                title="Filtrar citas por ${d.nombre}">
+          <span class="legend-dot" style="background-color: var(--doc-border);"></span>
+          <span class="legend-name">${docShort}</span>
+          <span class="legend-count">${d.count || 0}</span>
+        </button>
+      `;
+    }).join('');
+
+    const unassignedChip = unassignedCount > 0 ? `
+      <button type="button" 
+              class="legend-chip doc-color-neutral ${selectedDoctorId === 'unassigned' ? 'is-active' : ''}" 
+              data-doctor-id="unassigned"
+              title="Filtrar citas sin doctor asignado">
+        <span class="legend-dot" style="background-color: #64748b;"></span>
+        <span class="legend-name">Sin Dr.</span>
+        <span class="legend-count">${unassignedCount}</span>
+      </button>
+    ` : '';
+
+    return `
+      <div class="legend-inner-cluster cluster" data-gap="2xs" data-align="center">
+        <span class="legend-title">🩺 Doctores:</span>
+        <button type="button" 
+                class="legend-chip legend-chip-all ${allActive}" 
+                data-doctor-id="all"
+                title="Ver citas de todos los doctores">
+          <span class="legend-dot" style="background: linear-gradient(135deg, #0284c7, #10b981, #8b5cf6);"></span>
+          <span class="legend-name">Todos</span>
+          <span class="legend-count">${totalCitas}</span>
+        </button>
+        ${doctorChips}
+        ${unassignedChip}
       </div>
     `;
   }

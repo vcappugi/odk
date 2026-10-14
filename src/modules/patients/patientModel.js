@@ -17,8 +17,8 @@ export const patientModel = {
     let query = supabase.from('paciente').select('*');
 
     if (consultorioId) {
-      // Filtra por el consultorio_id asignado o pacientes generales pendientes de asignación
-      query = query.or(`consultorio_id.eq.${consultorioId},consultorio_id.is.null`);
+      // Filtrar estrictamente para que solo se vean los pacientes del consultorio al que se logueó
+      query = query.eq('consultorio_id', Number(consultorioId));
     }
 
     const { data, error } = await query.order('id', { ascending: false });

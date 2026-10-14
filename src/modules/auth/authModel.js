@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import { getSupabase, getConnectionStatus } from '../../services/supabaseClient.js';
 import { APP_CONSTANTS } from '../../config/constants.js';
 import { permissionService } from '../../services/permissionService.js';
+import { consultorioModel } from '../consultorio/consultorioModel.js';
 
 const AUTH_STORAGE_KEY = 'odk_auth_user_session';
 
@@ -31,6 +32,11 @@ export const authModel = {
     if (!user) return;
     const activeConsultorio = consultorio || user.consultorio || this.getActiveConsultorio() || null;
     const resolvedIsAdmin = isAdmin !== null ? Boolean(isAdmin) : Boolean(user.rol === 'admin' || user.isAdmin === true || user.role_id === 1);
+    
+    // Identificar restricción de Consultorio_ID en la tabla de usuarios
+    const rawConsultorioId = user.user_consultorio_id ?? user.consultorio_id ?? user.Consultorio_ID ?? null;
+    const isConsultorioEmpty = rawConsultorioId === null || rawConsultorioId === undefined || String(rawConsultorioId).trim() === '' || Number(rawConsultorioId) === 0;
+
     const sessionData = {
       id: user.id,
       nombre: user.nombre,
@@ -41,7 +47,10 @@ export const authModel = {
       role_id: user.role_id || (resolvedIsAdmin ? 1 : 2),
       role_name: user.role_name || user.rol || (resolvedIsAdmin ? 'admin' : 'usuario'),
       isAdmin: resolvedIsAdmin,
-      consultorio_id: activeConsultorio?.id || user.consultorio_id || null,
+      consultorio_id: activeConsultorio?.id || (!isConsultorioEmpty ? Number(rawConsultorioId) : null),
+      Consultorio_ID: !isConsultorioEmpty ? Number(rawConsultorioId) : null,
+      user_consultorio_id: !isConsultorioEmpty ? Number(rawConsultorioId) : null,
+      has_full_consultorios_access: isConsultorioEmpty,
       consultorio_nombre: activeConsultorio?.nombre || user.consultorio_nombre || 'Sede Principal',
       consultorio: activeConsultorio,
       activo: user.activo ?? true,
@@ -51,6 +60,7 @@ export const authModel = {
     if (activeConsultorio) {
       localStorage.setItem('odk_active_consultorio', JSON.stringify(activeConsultorio));
     }
+    window.dispatchEvent(new CustomEvent('auth:change', { detail: { user: sessionData } }));
     return sessionData;
   },
 
@@ -85,6 +95,92 @@ export const authModel = {
   },
 
   /**
+   * Obtiene los consultorios a los que el usuario tiene acceso según el campo Consultorio_ID
+   * de la tabla 'usuario'.
+   * Si el campo Consultorio_ID está vacío (null, undefined, '', 0), tiene acceso a TODOS los consultorios.
+   * Si tiene un ID específico, solo retorna el consultorio correspondiente.
+   * @param {string} identificador (correo o nombre de usuario)
+   * @returns {Promise<{ consultorios: Array, hasFullAccess: boolean, userFound: boolean, assignedId: any, user: Object|null }>}
+   */
+  async getConsultoriosForIdentifier(identificador) {
+    const supabase = getSupabase();
+    const conn = getConnectionStatus();
+    let allConsultorios = [];
+    try {
+      allConsultorios = await consultorioModel.getAll();
+    } catch {
+      allConsultorios = [];
+    }
+
+    const cleanId = (identificador || '').trim().toLowerCase();
+    if (!cleanId) {
+      return {
+        consultorios: allConsultorios,
+        hasFullAccess: true,
+        userFound: false,
+        assignedId: null,
+        user: null
+      };
+    }
+
+    if (supabase) {
+      try {
+        const { data: users, error } = await supabase
+          .from('usuario')
+          .select('id, nombre, mail, consultorio_id')
+          .or(`mail.ilike.${cleanId},nombre.ilike.${cleanId}`)
+          .limit(1);
+
+        if (!error && users && users.length > 0) {
+          const u = users[0];
+          // Validar campo Consultorio_ID (o consultorio_id)
+          const rawId = u.consultorio_id ?? u.Consultorio_ID ?? null;
+          const isEmpty = rawId === null || rawId === undefined || String(rawId).trim() === '' || Number(rawId) === 0;
+
+          // Si el campo Consultorio_ID de la tabla de usuarios está vacío -> acceso a todos los consultorios
+          if (isEmpty) {
+            return {
+              consultorios: allConsultorios,
+              hasFullAccess: true,
+              userFound: true,
+              assignedId: null,
+              user: u
+            };
+          }
+
+          // Si tiene asignado un consultorio específico -> solo mostrar los permitidos
+          const allowedIds = String(rawId).split(',').map(s => s.trim());
+          let filtered = allConsultorios.filter(c => allowedIds.includes(String(c.id)));
+
+          // Si no estaba en la lista inicial, buscarlo por id
+          if (filtered.length === 0 && allowedIds.length > 0) {
+            const single = await consultorioModel.getById(allowedIds[0]);
+            if (single) filtered = [single];
+          }
+
+          return {
+            consultorios: filtered,
+            hasFullAccess: false,
+            assignedId: rawId,
+            userFound: true,
+            user: u
+          };
+        }
+      } catch (err) {
+        console.warn('[AuthModel] Error consultando consultorios por usuario:', err);
+      }
+    }
+
+    return {
+      consultorios: allConsultorios,
+      hasFullAccess: true,
+      userFound: false,
+      assignedId: null,
+      user: null
+    };
+  },
+
+  /**
    * Cierra la sesión activa
    */
   logout() {
@@ -94,6 +190,7 @@ export const authModel = {
     } catch {
       // Ignorar si no está inicializado
     }
+    window.dispatchEvent(new CustomEvent('auth:change', { detail: { user: null } }));
   },
 
   /**
@@ -268,7 +365,34 @@ export const authModel = {
         console.warn('[AuthModel] Aviso al cargar permisos del rol:', permErr);
       }
 
-      return this.saveSession(user, isAdmin, selectedConsultorio);
+      // Resolver y validar consultorio según Consultorio_ID del usuario
+      const rawUserConsultorio = user.consultorio_id ?? user.Consultorio_ID ?? null;
+      const isConsultorioEmpty = rawUserConsultorio === null || rawUserConsultorio === undefined || String(rawUserConsultorio).trim() === '' || Number(rawUserConsultorio) === 0;
+
+      let finalConsultorio = selectedConsultorio;
+
+      if (!isConsultorioEmpty) {
+        // El usuario está asignado a un consultorio específico
+        const allowedIds = String(rawUserConsultorio).split(',').map(s => s.trim());
+        const allConsultorios = await consultorioModel.getAll();
+        const allowedConsultorios = allConsultorios.filter(c => allowedIds.includes(String(c.id)));
+
+        if (allowedConsultorios.length > 0) {
+          // Si el consultorio seleccionado no pertenece a sus autorizados, forzar el asignado
+          if (!finalConsultorio || !allowedIds.includes(String(finalConsultorio.id))) {
+            finalConsultorio = allowedConsultorios[0];
+          }
+        }
+      } else {
+        // En caso de que el campo Consultorio_ID esté vacío, tiene acceso a todos los consultorios
+        if (!finalConsultorio) {
+          const allConsultorios = await consultorioModel.getAll();
+          finalConsultorio = allConsultorios[0] || { id: 1, nombre: 'Sede Principal' };
+        }
+      }
+
+      user.user_consultorio_id = !isConsultorioEmpty ? Number(rawUserConsultorio) : null;
+      return this.saveSession(user, isAdmin, finalConsultorio);
     }
 
     // Modo local / demo

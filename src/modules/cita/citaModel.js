@@ -6,6 +6,17 @@
 import { getSupabase } from '../../services/supabaseClient.js';
 import { consultorioModel } from '../consultorio/consultorioModel.js';
 
+/**
+ * Determina de forma robusta si una cita se encuentra en estatus Atendida
+ * @param {any} estatus
+ * @returns {boolean}
+ */
+export function isCitaAtendida(estatus) {
+  if (estatus === true || estatus === 1 || estatus === '1' || estatus === 't' || estatus === 'true') return true;
+  if (typeof estatus === 'string' && estatus.trim().toLowerCase() === 'atendida') return true;
+  return false;
+}
+
 export const citaModel = {
   /**
    * Obtiene la lista de citas filtradas por consultorio (opcional)
@@ -29,6 +40,7 @@ export const citaModel = {
           consultorio_id,
           paciente_id,
           doctor_id,
+          estatus,
           paciente:paciente_id (
             id,
             nombre,
@@ -87,6 +99,7 @@ export const citaModel = {
         consultorio_id,
         paciente_id,
         doctor_id,
+        estatus,
         paciente:paciente_id (
           id,
           nombre,
@@ -149,6 +162,12 @@ export const citaModel = {
     const supabase = getSupabase();
     if (!supabase) throw new Error('Cliente Supabase no disponible');
 
+    // Verificar si la cita ya está atendida en la base de datos
+    const existing = await this.getById(id);
+    if (existing && isCitaAtendida(existing.estatus)) {
+      throw new Error('La cita ya está en estatus Atendida y no puede ser alterada.');
+    }
+
     const { data, error } = await supabase
       .from('cita')
       .update(citaData)
@@ -171,6 +190,12 @@ export const citaModel = {
   async delete(id) {
     const supabase = getSupabase();
     if (!supabase) throw new Error('Cliente Supabase no disponible');
+
+    // Verificar si la cita ya está atendida en la base de datos
+    const existing = await this.getById(id);
+    if (existing && isCitaAtendida(existing.estatus)) {
+      throw new Error('La cita ya está en estatus Atendida y no puede ser eliminada.');
+    }
 
     const { error } = await supabase
       .from('cita')

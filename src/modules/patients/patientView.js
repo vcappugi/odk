@@ -37,7 +37,10 @@ export function renderPatientManagementModals() {
 
           <div class="cluster" data-gap="xs">
             <button type="button" id="btn-quick-open-drive" class="button" data-variant="ghost" data-size="sm" title="Abrir carpeta de fotos en Google Drive">
-              <span>📁 Google Drive</span>
+              <span>📁 Drive</span>
+            </button>
+            <button type="button" id="btn-open-drive-config" class="button" data-variant="ghost" data-size="sm" title="Configurar Webhook de Google Drive">
+              <span>⚙️ Webhook</span>
             </button>
             <button type="button" id="btn-refresh-patients" class="button" data-variant="ghost" data-size="sm" title="Recargar lista">
               🔄
@@ -140,6 +143,10 @@ export function renderPatientManagementModals() {
                 ☁️ Subir a Drive
               </button>
 
+              <button type="button" id="btn-patient-configure-drive" class="button" data-variant="ghost" data-size="sm" style="font-size: 0.72rem; padding: 0.15rem 0.4rem; opacity: 0.8; height: 22px; width: 100%; justify-content: center; margin-top: 0.2rem;" title="Configuración de subida a Google Drive">
+                ⚙️ Configurar Webhook
+              </button>
+
               <!-- Mensaje de estado de subida -->
               <div id="patient-photo-status-msg" class="photo-status-msg" style="display: none; font-size: 0.74rem; font-weight: 500; text-align: center; margin-top: 0.2rem;"></div>
             </div>
@@ -222,10 +229,13 @@ export function renderPatientManagementModals() {
 
               <!-- Fila 4: Consultorio y Dirección -->
               <div class="field">
-                <label for="patient-field-consultorio" class="label field-label-compact">Consultorio Asignado</label>
-                <select id="patient-field-consultorio" class="input input-compact">
-                  <option value="">Sin asignar / Consultorio General</option>
+                <label for="patient-field-consultorio" class="label field-label-compact">Consultorio Asignado *</label>
+                <select id="patient-field-consultorio" class="input input-compact" required disabled style="cursor: not-allowed; opacity: 0.95; background: rgba(255,255,255,0.06);">
+                  <option value="" disabled selected>Cargando consultorio de la sesión...</option>
                 </select>
+                <small id="patient-consultorio-hint" style="font-size: 0.72rem; color: #3b82f6; display: block; margin-top: 2px;">
+                  🔒 Sede fijada al consultorio de la sesión activa
+                </small>
               </div>
 
               <div class="field">

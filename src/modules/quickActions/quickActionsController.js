@@ -5,6 +5,7 @@
 
 import { getSupabase } from '../../services/supabaseClient.js';
 import { consultorioModel } from '../consultorio/consultorioModel.js';
+import { authModel } from '../auth/authModel.js';
 import { notificationService } from '../../services/notificationService.js';
 import { permissionService } from '../../services/permissionService.js';
 import { $ } from '../../utils/dom.js';
@@ -12,6 +13,7 @@ import { $ } from '../../utils/dom.js';
 export const quickActionsController = {
   init() {
     this.attachEventListeners();
+    this.loadConsultoriosQuickDoctorSelect();
   },
 
   attachEventListeners() {
@@ -86,16 +88,56 @@ export const quickActionsController = {
         this.filterHistory(e.target.value.toLowerCase().trim());
       });
     }
+
+    // 6. Sincronización reactiva si cambia el consultorio o la autenticación
+    window.addEventListener('auth:change', () => this.loadConsultoriosQuickDoctorSelect());
+    window.addEventListener('consultorio:changed', () => this.loadConsultoriosQuickDoctorSelect());
   },
 
   openModal(modalId) {
     const dialog = $(`#${modalId}`);
     if (!dialog) return;
 
+    if (modalId === 'modal-quick-doctor') {
+      this.loadConsultoriosQuickDoctorSelect();
+    }
+
     if (typeof dialog.showModal === 'function') {
       dialog.showModal();
     } else {
       dialog.setAttribute('open', '');
+    }
+  },
+
+  /**
+   * Carga exclusivamente el consultorio con el que se logueó el usuario en el modal rápido de doctor
+   * y lo mantiene bloqueado para no permitir ningún otro consultorio.
+   */
+  async loadConsultoriosQuickDoctorSelect() {
+    const select = $('#doctor-consultorio');
+    if (!select) return;
+
+    try {
+      const active = consultorioModel.getActiveConsultorio() 
+        || authModel.getActiveConsultorio()
+        || authModel.getCurrentUser()?.consultorio;
+      const activeId = active?.id ? String(active.id) : '';
+
+      if (active && activeId) {
+        select.innerHTML = `<option value="${activeId}" selected>🏢 ${active.nombre} (Sede de la sesión activa)</option>`;
+        select.value = activeId;
+        select.disabled = true;
+      } else {
+        select.innerHTML = `<option value="" disabled selected>No hay sede activa en la sesión</option>`;
+        select.disabled = true;
+      }
+
+      const hint = $('#quick-doctor-consultorio-hint');
+      if (hint && active) {
+        hint.textContent = `🔒 Sede fijada al consultorio de la sesión: ${active.nombre}`;
+      }
+    } catch (err) {
+      console.warn('[QuickActions] Error cargando consultorio para doctor rápido:', err);
     }
   },
 
@@ -141,8 +183,16 @@ export const quickActionsController = {
       const supabase = getSupabase();
       if (!supabase) throw new Error('Cliente Supabase no inicializado');
 
-      const activeConsultorio = consultorioModel.getActiveConsultorio();
-      const consultorio_id = activeConsultorio?.id ? Number(activeConsultorio.id) : null;
+      const activeConsultorio = consultorioModel.getActiveConsultorio() 
+        || authModel.getActiveConsultorio()
+        || authModel.getCurrentUser()?.consultorio;
+
+      if (!activeConsultorio?.id) {
+        notificationService.error('Debes tener un consultorio activo en la sesión para registrar un cliente.');
+        return;
+      }
+
+      const consultorio_id = Number(activeConsultorio.id);
 
       const { data, error } = await supabase
         .from('paciente')
@@ -180,6 +230,7 @@ export const quickActionsController = {
   async handleSaveDoctor() {
     const submitBtn = $('#btn-submit-doctor');
     const nameInput = $('#doctor-name');
+    const consultorioSelect = $('#doctor-consultorio');
     const phoneInput = $('#doctor-phone');
     const mailInput = $('#doctor-mail');
 
@@ -187,10 +238,21 @@ export const quickActionsController = {
     const telefono = phoneInput?.value.trim();
     const mail = mailInput?.value.trim();
 
-    if (!nombre || !telefono || !mail) {
-      notificationService.error('Por favor completa los datos del especialista.');
+    if (!nombre) {
+      notificationService.error('Por favor ingresa el nombre del especialista.');
       return;
     }
+
+    const activeConsultorio = consultorioModel.getActiveConsultorio() 
+      || authModel.getActiveConsultorio()
+      || authModel.getCurrentUser()?.consultorio;
+
+    if (!activeConsultorio?.id) {
+      notificationService.error('Debes tener un consultorio activo en la sesión para registrar un doctor.');
+      return;
+    }
+
+    const consultorio_id = Number(activeConsultorio.id);
 
     if (submitBtn) {
       submitBtn.disabled = true;
@@ -201,29 +263,30 @@ export const quickActionsController = {
       const supabase = getSupabase();
       if (!supabase) throw new Error('Cliente Supabase no inicializado');
 
-      const activeConsultorio = consultorioModel.getActiveConsultorio();
-      const consultorio_id = activeConsultorio?.id ? Number(activeConsultorio.id) : null;
-
       const { data, error } = await supabase
         .from('doctor')
-        .insert([{ nombre, telefono, mail, consultorio_id }])
+        .insert([{ 
+          nombre, 
+          telefono: telefono || null, 
+          mail: mail || null, 
+          consultorio_id 
+        }])
         .select();
 
       if (error) {
-        console.warn('Nota Supabase doctor:', error.message);
-        notificationService.success(`Doctor ${nombre} registrado con éxito.`);
-      } else {
-        notificationService.success(`Doctor ${nombre} registrado con éxito.`);
+        throw error;
       }
 
+      notificationService.success(`Doctor "${nombre}" registrado con éxito.`);
       $('#form-quick-doctor')?.reset();
       this.closeModal('modal-quick-doctor');
+
+      // Notificar a módulos reactivos (calendario, citas, admin)
+      window.dispatchEvent(new CustomEvent('doctors:changed'));
 
     } catch (err) {
       console.error('Error registrando doctor:', err);
-      notificationService.success(`Doctor ${nombre} registrado con éxito.`);
-      $('#form-quick-doctor')?.reset();
-      this.closeModal('modal-quick-doctor');
+      notificationService.error(err.message || 'Error al guardar doctor');
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;

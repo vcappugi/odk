@@ -6,6 +6,7 @@
 
 import { patientModel } from './patientModel.js';
 import { consultorioModel } from '../consultorio/consultorioModel.js';
+import { authModel } from '../auth/authModel.js';
 import { googleDriveService, GOOGLE_DRIVE_CONFIG } from '../../services/googleDriveService.js';
 import { renderPatientTableRow, renderEmptyPatientsState } from './patientView.js';
 import { notificationService } from '../../services/notificationService.js';
@@ -26,11 +27,17 @@ export const patientController = {
 
   init() {
     this.attachEventListeners();
-    this.loadConsultorios();
+    this.populateConsultoriosSelect();
 
-    // Escuchar cambio de sede activa para refrescar inmediatamente la lista de pacientes
+    // Escuchar cambio de sede activa para refrescar inmediatamente la lista de pacientes y el campo consultorio
     consultorioModel.subscribe((newConsultorio) => {
       console.log('🏢 [PatientController] Filtrando por nueva sede:', newConsultorio?.nombre);
+      this.populateConsultoriosSelect();
+      this.loadPatients();
+    });
+
+    window.addEventListener('auth:change', () => {
+      this.populateConsultoriosSelect();
       this.loadPatients();
     });
   },
@@ -193,7 +200,10 @@ export const patientController = {
 
     // 10. Abrir modal de configuración del Webhook de Drive
     document.addEventListener('click', (e) => {
-      if (e.target.closest('#btn-open-drive-config')) {
+      if (
+        e.target.closest('#btn-open-drive-config') ||
+        e.target.closest('#btn-patient-configure-drive')
+      ) {
         this.openDriveConfigModal();
       }
     });
@@ -289,36 +299,10 @@ export const patientController = {
   },
 
   /**
-   * Carga los consultorios desde Supabase y actualiza el desplegable
+   * Carga los consultorios y asegura la fijación del consultorio activo
    */
   async loadConsultorios() {
-    try {
-      this.consultoriosList = await consultorioModel.getAll();
-      this.populateConsultoriosSelect();
-    } catch (err) {
-      console.warn('[PatientController] No se pudieron cargar los consultorios:', err);
-    }
-  },
-
-  /**
-   * Rellena las opciones del select de consultorios
-   */
-  populateConsultoriosSelect(selectedId = null) {
-    const select = $('#patient-field-consultorio');
-    if (!select) return;
-
-    let html = '<option value="">Sin asignar / Consultorio General</option>';
-    if (this.consultoriosList && this.consultoriosList.length > 0) {
-      this.consultoriosList.forEach(c => {
-        const name = c.nombre ? `${c.nombre} (ID: ${c.id})` : `Consultorio #${c.id}`;
-        const isSelected = String(c.id) === String(selectedId) ? 'selected' : '';
-        html += `<option value="${c.id}" ${isSelected}>${name}</option>`;
-      });
-    } else if (selectedId) {
-      html += `<option value="${selectedId}" selected>Consultorio #${selectedId}</option>`;
-    }
-
-    select.innerHTML = html;
+    this.populateConsultoriosSelect();
   },
 
   /**
@@ -340,13 +324,44 @@ export const patientController = {
   },
 
   /**
+   * Carga exclusivamente el consultorio con el que se logueó el usuario en el formulario de paciente
+   * y lo mantiene bloqueado para no permitir ningún otro consultorio.
+   */
+  populateConsultoriosSelect() {
+    const select = $('#patient-field-consultorio');
+    if (!select) return;
+
+    const activeConsultorio = consultorioModel.getActiveConsultorio() 
+      || authModel.getActiveConsultorio() 
+      || authModel.getCurrentUser()?.consultorio;
+    
+    const activeId = activeConsultorio?.id ? String(activeConsultorio.id) : '';
+
+    if (activeConsultorio && activeId) {
+      select.innerHTML = `<option value="${activeId}" selected>🏢 ${activeConsultorio.nombre} (Sede de la sesión activa)</option>`;
+      select.value = activeId;
+      select.disabled = true;
+    } else {
+      select.innerHTML = `<option value="" disabled selected>No hay sede activa en la sesión</option>`;
+      select.disabled = true;
+    }
+
+    const hint = $('#patient-consultorio-hint');
+    if (hint && activeConsultorio) {
+      hint.textContent = `🔒 Sede fijada al consultorio de la sesión: ${activeConsultorio.nombre}`;
+    }
+  },
+
+  /**
    * Consulta Supabase y actualiza la tabla
    */
   async loadPatients() {
     const tbody = $('#patients-table-body');
     const countLabel = $('#patients-count-label');
-    const activeConsultorio = consultorioModel.getActiveConsultorio();
-    const consultorioId = activeConsultorio?.id || null;
+    const activeConsultorio = consultorioModel.getActiveConsultorio() 
+      || authModel.getActiveConsultorio() 
+      || authModel.getCurrentUser()?.consultorio;
+    const consultorioId = activeConsultorio?.id ? Number(activeConsultorio.id) : null;
 
     this.isLoading = true;
     if (tbody) {
@@ -435,7 +450,10 @@ export const patientController = {
    * Abre el formulario en modo CREAR
    */
   openCreateForm() {
-    if (!permissionService.canWrite('modal-patient-form')) {
+    const canWritePatient = permissionService.canWrite('modal-patient-form');
+    const canWriteCita = permissionService.canWrite('modal-cita');
+
+    if (!canWritePatient && !canWriteCita) {
       notificationService.warning('Tu rol no tiene permiso para registrar nuevos pacientes.');
       return;
     }
@@ -473,13 +491,6 @@ export const patientController = {
     if (btnOdonto) btnOdonto.style.display = 'none';
     const btnPrint = $('#btn-patient-print-pdf');
     if (btnPrint) btnPrint.style.display = 'none';
-
-    // Seleccionar por defecto la sede activa
-    const activeConsultorio = consultorioModel.getActiveConsultorio();
-    const consultorioSelect = $('#patient-field-consultorio');
-    if (consultorioSelect && activeConsultorio?.id) {
-      consultorioSelect.value = String(activeConsultorio.id);
-    }
 
     this.openDialog('modal-patient-form');
   },
@@ -526,9 +537,6 @@ export const patientController = {
       this.updateAgeBadge(bDate);
     }
 
-    // Consultorio
-    this.populateConsultoriosSelect(patient.consultorio_id);
-
     // Foto
     this.currentLocalPreview = null;
     if (fotoInput) {
@@ -555,6 +563,9 @@ export const patientController = {
         el.disabled = !canWrite;
       });
     }
+
+    // El consultorio debe quedar estrictamente bloqueado con la sede activa del usuario logueado
+    this.populateConsultoriosSelect();
 
     // Mostrar botón de acceso al Historial Médico, Odontograma y Ficha PDF en modo Edición
     const btnHistorial = $('#btn-patient-open-historial');
@@ -595,12 +606,9 @@ export const patientController = {
       console.warn('[PatientController] Error creando objectURL:', err);
     }
 
-    // 2. Si hay Webhook de Google Apps Script configurado, subir en segundo plano a Drive
+    // 2. Subir imagen a Google Drive
     try {
-      const webhookUrl = googleDriveService.getWebhookUrl();
-      if (webhookUrl) {
-        await this.handleUploadPhotoToDrive();
-      }
+      await this.handleUploadPhotoToDrive();
     } catch (err) {
       console.error('[PatientController] Error procesando foto:', err);
     }
@@ -963,9 +971,17 @@ export const patientController = {
     const sexo = sexSelect?.value || null;
     const fecha_nacimiento = birthdateInput?.value || null;
 
-    const consultorioVal = consultorioSelect?.value;
-    const activeConsultorio = consultorioModel.getActiveConsultorio();
-    const consultorio_id = consultorioVal ? parseInt(consultorioVal, 10) : (activeConsultorio?.id ? Number(activeConsultorio.id) : null);
+    // No permitir otro consultorio que no sea el logueado en la sesión
+    const activeConsultorio = consultorioModel.getActiveConsultorio() 
+      || authModel.getActiveConsultorio() 
+      || authModel.getCurrentUser()?.consultorio;
+
+    if (!activeConsultorio?.id) {
+      notificationService.error('Debes tener un consultorio activo en la sesión para registrar o modificar un paciente.');
+      return;
+    }
+
+    const consultorio_id = Number(activeConsultorio.id);
 
     let foto = fotoInput?.value.trim() || null;
 
@@ -1094,10 +1110,27 @@ export const patientController = {
     const dialog = $(`#${dialogId}`);
     if (!dialog) return;
 
-    if (typeof dialog.showModal === 'function') {
-      dialog.showModal();
-    } else {
-      dialog.setAttribute('open', '');
+    try {
+      if (dialog.open) {
+        if (typeof dialog.close === 'function') {
+          dialog.close();
+        } else {
+          dialog.removeAttribute('open');
+        }
+      }
+
+      if (typeof dialog.showModal === 'function') {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute('open', '');
+      }
+    } catch (err) {
+      console.warn(`[PatientController] Error abriendo diálogo ${dialogId}:`, err);
+      try {
+        dialog.setAttribute('open', '');
+      } catch (fallbackErr) {
+        console.error('[PatientController] Fallback open failed:', fallbackErr);
+      }
     }
   },
 

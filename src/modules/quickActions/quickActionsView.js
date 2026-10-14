@@ -73,8 +73,18 @@ function renderDoctorModal() {
 
         <form id="form-quick-doctor" class="stack" data-gap="sm">
           <div class="field">
-            <label for="doctor-name" class="label">Nombre del Especialista</label>
+            <label for="doctor-name" class="label">Nombre del Especialista *</label>
             <input type="text" id="doctor-name" class="input" placeholder="Ej. Dra. Kris Rodríguez" required autofocus />
+          </div>
+
+          <div class="field">
+            <label for="doctor-consultorio" class="label">Consultorio / Sede Asignada *</label>
+            <select id="doctor-consultorio" class="input select" required disabled style="cursor: not-allowed; opacity: 0.95; background: rgba(255,255,255,0.06);">
+              <option value="" disabled selected>Cargando consultorio de la sesión...</option>
+            </select>
+            <small id="quick-doctor-consultorio-hint" style="font-size: 0.75rem; color: #3b82f6; display: block; margin-top: 3px;">
+              🔒 Sede fijada al consultorio de la sesión activa
+            </small>
           </div>
 
           <div class="grid grid-cols-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">

@@ -564,6 +564,178 @@ html.platform-android textarea {
   font-weight: 600;
 }
 
+.cal-toolbar-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.cal-doctor-filter-cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(125, 125, 125, 0.08);
+  padding: 0.2rem 0.5rem 0.2rem 0.65rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(125, 125, 125, 0.2);
+}
+
+.cal-doctor-filter-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cal-doctor-filter-select {
+  font-size: 0.82rem !important;
+  padding: 0.3rem 1.8rem 0.3rem 0.6rem !important;
+  border-radius: 0.4rem !important;
+  border: 1px solid rgba(125, 125, 125, 0.25) !important;
+  background-color: var(--app-surface-raised, #ffffff) !important;
+  font-weight: 600;
+  min-width: 175px;
+  max-width: 240px;
+  cursor: pointer;
+  box-shadow: none !important;
+}
+
+.cal-filter-active-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(2, 132, 199, 0.14);
+  color: #0284c7;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  vertical-align: middle;
+  margin-left: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+html[data-theme="dark"] .cal-filter-active-badge {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+}
+
+/* Barra de Leyenda de Doctores */
+.cal-doctor-legend {
+  padding: 0.4rem 0.75rem;
+  background: rgba(125, 125, 125, 0.06);
+  border-radius: 0.6rem;
+  border: 1px solid rgba(125, 125, 125, 0.12);
+  min-height: 38px;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.legend-inner-cluster {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.legend-title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  opacity: 0.75;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-right: 0.2rem;
+  white-space: nowrap;
+}
+
+.legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(125, 125, 125, 0.1);
+  border: 1px solid rgba(125, 125, 125, 0.18);
+  color: inherit;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.legend-chip[class*="doc-color-"] {
+  background: var(--doc-bg);
+  color: var(--doc-text);
+  border-color: rgba(125, 125, 125, 0.15);
+}
+
+.legend-chip:hover {
+  transform: translateY(-1px);
+  filter: brightness(0.95);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.legend-chip.is-active {
+  border-color: var(--doc-border, #0284c7) !important;
+  box-shadow: 0 0 0 2px var(--doc-border, #0284c7) !important;
+  font-weight: 700;
+}
+
+.legend-chip-all.is-active {
+  background: rgba(2, 132, 199, 0.15);
+  color: #0284c7;
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 0 2px #0284c7 !important;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.legend-count {
+  font-size: 0.65rem;
+  opacity: 0.75;
+  padding: 0 0.25rem;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
+}
+
+html[data-theme="dark"] .legend-count {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 768px) {
+  .calendar-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+  .cal-toolbar-right {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .cal-doctor-filter-cluster {
+    flex: 1;
+    min-width: 0;
+  }
+  .cal-doctor-filter-select {
+    min-width: 0;
+    width: 100%;
+    flex: 1;
+  }
+}
+
 /* Vista por Mes */
 .cal-month-wrapper {
   margin-top: 0.5rem;
@@ -2140,12 +2312,35 @@ html[data-theme="dark"] .patient-photo-card {
   width: 96vw !important;
   max-height: 95vh !important;
   border-radius: 1rem !important;
+  z-index: 100020 !important;
+}
+
+.modal-patient-wide::backdrop {
+  z-index: 100019 !important;
 }
 
 .modal-patient-wide .modal-box {
   padding: 1.15rem 1.4rem !important;
   max-height: none !important;
   overflow: visible !important;
+}
+
+.btn-add-patient-inline,
+.btn-icon-add-patient {
+  cursor: pointer !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.btn-add-patient-inline:hover {
+  color: var(--primary, #0ea5e9) !important;
+  background: rgba(14, 165, 233, 0.1) !important;
+}
+
+.btn-add-patient-inline:disabled,
+.btn-icon-add-patient:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.5 !important;
+  pointer-events: none !important;
 }
 
 .patient-form-two-col {
@@ -2580,6 +2775,38 @@ html[data-theme="dark"] .badge-sede {
   opacity: 1 !important;
 }
 
+/* ==========================================================================
+   Colores Diferenciados por Doctor para Citas del Calendario
+   ========================================================================== */
+.doc-color-0 { --doc-border: #0284c7; --doc-bg: rgba(2, 132, 199, 0.14); --doc-text: #0284c7; }
+.doc-color-1 { --doc-border: #059669; --doc-bg: rgba(16, 185, 129, 0.14); --doc-text: #059669; }
+.doc-color-2 { --doc-border: #7c3aed; --doc-bg: rgba(139, 92, 246, 0.14); --doc-text: #7c3aed; }
+.doc-color-3 { --doc-border: #d97706; --doc-bg: rgba(245, 158, 11, 0.15); --doc-text: #b45309; }
+.doc-color-4 { --doc-border: #e11d48; --doc-bg: rgba(244, 63, 94, 0.14); --doc-text: #e11d48; }
+.doc-color-5 { --doc-border: #0d9488; --doc-bg: rgba(20, 184, 166, 0.14); --doc-text: #0d9488; }
+.doc-color-6 { --doc-border: #4f46e5; --doc-bg: rgba(99, 102, 241, 0.14); --doc-text: #4f46e5; }
+.doc-color-7 { --doc-border: #c026d3; --doc-bg: rgba(217, 70, 239, 0.14); --doc-text: #c026d3; }
+.doc-color-8 { --doc-border: #0891b2; --doc-bg: rgba(6, 182, 212, 0.14); --doc-text: #0891b2; }
+.doc-color-9 { --doc-border: #ea580c; --doc-bg: rgba(249, 115, 22, 0.14); --doc-text: #ea580c; }
+.doc-color-10 { --doc-border: #65a30d; --doc-bg: rgba(132, 204, 22, 0.15); --doc-text: #65a30d; }
+.doc-color-11 { --doc-border: #b45309; --doc-bg: rgba(180, 83, 9, 0.14); --doc-text: #b45309; }
+.doc-color-neutral { --doc-border: #64748b; --doc-bg: rgba(100, 116, 139, 0.14); --doc-text: #64748b; }
+
+/* Modo Oscuro para colores de doctor */
+html[data-theme="dark"] .doc-color-0 { --doc-border: #38bdf8; --doc-bg: rgba(56, 189, 248, 0.18); --doc-text: #38bdf8; }
+html[data-theme="dark"] .doc-color-1 { --doc-border: #34d399; --doc-bg: rgba(52, 211, 153, 0.18); --doc-text: #34d399; }
+html[data-theme="dark"] .doc-color-2 { --doc-border: #a78bfa; --doc-bg: rgba(167, 139, 250, 0.18); --doc-text: #a78bfa; }
+html[data-theme="dark"] .doc-color-3 { --doc-border: #fbbf24; --doc-bg: rgba(251, 191, 36, 0.18); --doc-text: #fbbf24; }
+html[data-theme="dark"] .doc-color-4 { --doc-border: #fb7185; --doc-bg: rgba(251, 113, 133, 0.18); --doc-text: #fb7185; }
+html[data-theme="dark"] .doc-color-5 { --doc-border: #2dd4bf; --doc-bg: rgba(45, 212, 191, 0.18); --doc-text: #2dd4bf; }
+html[data-theme="dark"] .doc-color-6 { --doc-border: #818cf8; --doc-bg: rgba(129, 140, 248, 0.18); --doc-text: #818cf8; }
+html[data-theme="dark"] .doc-color-7 { --doc-border: #e879f9; --doc-bg: rgba(232, 121, 249, 0.18); --doc-text: #e879f9; }
+html[data-theme="dark"] .doc-color-8 { --doc-border: #22d3ee; --doc-bg: rgba(34, 211, 238, 0.18); --doc-text: #22d3ee; }
+html[data-theme="dark"] .doc-color-9 { --doc-border: #fb923c; --doc-bg: rgba(251, 146, 60, 0.18); --doc-text: #fb923c; }
+html[data-theme="dark"] .doc-color-10 { --doc-border: #a3e635; --doc-bg: rgba(163, 230, 53, 0.18); --doc-text: #a3e635; }
+html[data-theme="dark"] .doc-color-11 { --doc-border: #f59e0b; --doc-bg: rgba(245, 158, 11, 0.18); --doc-text: #f59e0b; }
+html[data-theme="dark"] .doc-color-neutral { --doc-border: #94a3b8; --doc-bg: rgba(148, 163, 184, 0.18); --doc-text: #cbd5e1; }
+
 .day-agenda-card {
   cursor: pointer;
   transition: all 0.2s ease;
@@ -2591,21 +2818,122 @@ html[data-theme="dark"] .badge-sede {
   border-color: #0284c7 !important;
 }
 
+.day-agenda-card[class*="doc-color-"] {
+  border-left: 5px solid var(--doc-border) !important;
+  background: linear-gradient(to right, var(--doc-bg) 0%, transparent 60%) !important;
+}
+
+.day-agenda-card[class*="doc-color-"]:hover {
+  border-color: var(--doc-border) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
 .cal-appointment-card {
   cursor: pointer;
   transition: all 0.2s ease;
-  border-left: 3px solid #0284c7 !important;
+  border-left: 4px solid #0284c7 !important;
   background: rgba(2, 132, 199, 0.08) !important;
 }
 
 .cal-appointment-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.18);
-  background: rgba(2, 132, 199, 0.15) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+}
+
+.cal-appointment-card[class*="doc-color-"] {
+  background: var(--doc-bg) !important;
+  border-left: 4px solid var(--doc-border) !important;
+}
+
+.cal-appointment-card .app-card-header {
+  margin-bottom: 0.25rem;
+  gap: 0.35rem;
+}
+
+.cal-appointment-card .app-patient {
+  display: block;
+  font-size: 0.8rem;
+  line-height: 1.25;
+  color: inherit;
+}
+
+.cal-appointment-card .app-treatment {
+  display: block;
+  font-size: 0.72rem;
+  opacity: 0.8;
+  line-height: 1.25;
+}
+
+.badge-doctor-pill {
+  font-size: 0.68rem !important;
+  padding: 0.12rem 0.45rem !important;
+  border-radius: 9999px !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.2rem !important;
+  white-space: nowrap !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18) !important;
+}
+
+.cal-month-cita-chip[class*="doc-color-"] {
+  background: var(--doc-bg) !important;
+  color: var(--doc-text) !important;
+  border-left: 3px solid var(--doc-border) !important;
+}
+
+.cal-month-cita-chip .chip-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.cal-month-cita-chip .chip-doc {
+  margin-left: auto;
+  font-size: 0.6rem;
+  opacity: 0.9;
+  font-weight: 700;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.45);
+  color: var(--doc-text);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+html[data-theme="dark"] .cal-month-cita-chip .chip-doc {
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--doc-text);
+}
+
+/* Estilos para citas protegidas / enmascaradas (no logueado) */
+.cal-month-cita-chip.is-masked .chip-patient {
+  font-style: italic;
+  font-weight: 500;
+  opacity: 0.92;
+}
+
+.cal-appointment-card.is-masked .app-patient {
+  font-style: italic;
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+.cal-appointment-card.is-masked .app-treatment {
+  font-style: italic;
+  opacity: 0.75;
+}
+
+.day-agenda-card.is-masked .agenda-patient {
+  font-style: italic;
+  font-weight: 600;
+  opacity: 0.95;
 }
 
 /* Modo Oscuro para componentes de Citas */
-html[data-theme="dark"] .cal-month-cita-chip {
+html[data-theme="dark"] .cal-month-cita-chip:not([class*="doc-color-"]) {
   background: rgba(56, 189, 248, 0.16);
   color: #38bdf8;
   border-left-color: #38bdf8;
@@ -2629,7 +2957,7 @@ html[data-theme="dark"] .clickable-empty-slot:hover {
   color: #38bdf8 !important;
 }
 
-html[data-theme="dark"] .cal-appointment-card {
+html[data-theme="dark"] .cal-appointment-card:not([class*="doc-color-"]) {
   border-left-color: #38bdf8 !important;
   background: rgba(56, 189, 248, 0.1) !important;
   color: #f1f5f9;
@@ -3139,3 +3467,501 @@ html[data-theme="light"] .tooth-svg-box svg {
     print-color-adjust: exact !important;
   }
 }
+
+/* ==========================================================================
+   VISTA PÚBLICA PARA USUARIOS NO AUTENTICADOS (GUEST WELCOME VIEW)
+   Muestra únicamente el título en grande y la información de contacto (WhatsApp)
+   Oculta calendario, filtros de calendario y barras de gestión.
+   ========================================================================== */
+[data-auth-status="unauthenticated"] #authenticated-app-view {
+  display: none !important;
+}
+
+[data-auth-status="authenticated"] #guest-welcome-view {
+  display: none !important;
+}
+
+.guest-welcome-card {
+  min-height: clamp(420px, 68vh, 680px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.25rem, 4vw, 2.5rem);
+  border-radius: 1.5rem !important;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 16px 45px -12px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: guestFadeIn 0.35s ease-out;
+}
+
+html[data-theme="light"] .guest-welcome-card {
+  background: radial-gradient(ellipse at 50% 25%, rgba(2, 132, 199, 0.1) 0%, rgba(2, 132, 199, 0.02) 65%, #ffffff 100%) !important;
+  border: 1px solid rgba(2, 132, 199, 0.22) !important;
+}
+
+html[data-theme="dark"] .guest-welcome-card {
+  background: radial-gradient(ellipse at 50% 25%, rgba(56, 189, 248, 0.14) 0%, rgba(2, 132, 199, 0.04) 65%, #0f172a 100%) !important;
+  border: 1px solid rgba(56, 189, 248, 0.24) !important;
+}
+
+@keyframes guestFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.guest-welcome-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1.25rem, 3vw, 2rem);
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.guest-dental-emblem {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(74px, 10vw, 92px);
+  height: clamp(74px, 10vw, 92px);
+  border-radius: 26px;
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.16) 0%, rgba(14, 165, 233, 0.08) 100%);
+  border: 1.5px solid rgba(2, 132, 199, 0.28);
+  color: #0284c7;
+  box-shadow: 0 10px 28px -6px rgba(2, 132, 199, 0.25);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+html[data-theme="dark"] .guest-dental-emblem {
+  color: #38bdf8;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(2, 132, 199, 0.1) 100%);
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 10px 28px -6px rgba(56, 189, 248, 0.25);
+}
+
+.guest-dental-emblem:hover {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 14px 34px -4px rgba(2, 132, 199, 0.35);
+}
+
+.guest-system-headline {
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.03em;
+  margin: 0;
+  text-wrap: balance;
+  text-align: center;
+  max-width: 780px;
+}
+
+html[data-theme="light"] .guest-system-headline {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 40%, #0f172a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+html[data-theme="dark"] .guest-system-headline {
+  background: linear-gradient(135deg, #38bdf8 0%, #60a5fa 45%, #f8fafc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.guest-whatsapp-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.25rem;
+  width: 100%;
+}
+
+.guest-whatsapp-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: clamp(0.85rem, 2vw, 1.1rem) clamp(1.4rem, 3.5vw, 2.25rem);
+  background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+  color: #ffffff !important;
+  text-decoration: none !important;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: clamp(1.1rem, 2.5vw, 1.55rem);
+  letter-spacing: -0.01em;
+  box-shadow: 0 8px 26px -4px rgba(37, 211, 102, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 100%;
+  text-align: center;
+  word-break: break-word;
+}
+
+.guest-whatsapp-link:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 32px -4px rgba(37, 211, 102, 0.65);
+  filter: brightness(1.06);
+  color: #ffffff !important;
+}
+
+.guest-whatsapp-link:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.whatsapp-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.guest-whatsapp-label {
+  display: inline-block;
+  line-height: 1.25;
+}
+
+.guest-action-cta {
+  margin-top: 0.75rem;
+}
+
+.btn-guest-portal {
+  font-size: 1.05rem !important;
+  font-weight: 600 !important;
+  padding: 0.7rem 1.85rem !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.35) !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--app-transition-smooth) !important;
+}
+
+.btn-guest-portal:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.5) !important;
+}
+
+/* =====================================================================
+   ESTATUS DE CITAS ODONTOLÓGICAS (PENDIENTE / ATENDIDA)
+   ===================================================================== */
+.badge-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  vertical-align: middle;
+  transition: all 0.2s ease;
+}
+
+.badge-status-pendiente {
+  background: rgba(245, 158, 11, 0.16) !important;
+  color: #d97706 !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+}
+
+html[data-theme="dark"] .badge-status-pendiente {
+  background: rgba(245, 158, 11, 0.22) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
+}
+
+.badge-status-atendida {
+  background: rgba(16, 185, 129, 0.16) !important;
+  color: #059669 !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+}
+
+html[data-theme="dark"] .badge-status-atendida {
+  background: rgba(16, 185, 129, 0.22) !important;
+  color: #34d399 !important;
+  border-color: rgba(16, 185, 129, 0.5) !important;
+}
+
+.chip-status-check {
+  display: inline-block;
+  color: #10b981;
+  font-weight: 800;
+  font-size: 0.72rem;
+  margin-right: 2px;
+}
+
+.cal-month-cita-chip.is-atendida {
+  opacity: 0.92;
+}
+
+/* Botón de Cobro de Citas */
+.btn-cobro {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border-color: #059669 !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.28) !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-cobro:hover {
+  background: #059669 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
+}
+
+#cita-realizada-banner {
+  animation: fadeInBanner 0.25s ease-out;
+}
+
+@keyframes fadeInBanner {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =====================================================================
+   MODALES DE CITAS Y COBROS COMPACTOS SIN SCROLL (DISEÑO 2 COLUMNAS)
+   ===================================================================== */
+.modal-cita-dialog {
+  max-width: 760px !important;
+  width: min(760px, 95vw) !important;
+  max-height: 94vh !important;
+  border-radius: 0.85rem !important;
+  overflow: hidden !important;
+  overflow-y: hidden !important;
+}
+
+.modal-cobro-dialog {
+  max-width: 780px !important;
+  width: min(780px, 95vw) !important;
+  max-height: 94vh !important;
+  border-radius: 0.85rem !important;
+  overflow: hidden !important;
+}
+
+.modal-cita-dialog .modal-box {
+  padding: 0.85rem 1.15rem !important;
+  max-height: 94vh !important;
+  overflow: hidden !important;
+  overflow-y: hidden !important;
+  box-sizing: border-box !important;
+  gap: 0.4rem !important;
+}
+
+.modal-cobro-dialog .modal-box {
+  padding: 0.85rem 1.15rem !important;
+  max-height: 94vh !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+  gap: 0.4rem !important;
+}
+
+#form-cita,
+#form-cobro-cita {
+  gap: 0.35rem !important;
+  overflow: hidden !important;
+}
+
+/* Grillas en 2 columnas para distribución horizontal */
+.cita-form-grid,
+.cobro-form-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 0.75rem !important;
+  align-items: start !important;
+  margin: 0 !important;
+}
+
+.cita-col,
+.cobro-col {
+  min-width: 0 !important;
+  gap: 0.35rem !important;
+}
+
+.modal-cita-dialog .field,
+.modal-cobro-dialog .field {
+  margin-bottom: 0 !important;
+  gap: 0.15rem !important;
+}
+
+.modal-cita-dialog .field .label,
+.modal-cobro-dialog .field .label {
+  font-size: 0.76rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 0 !important;
+  line-height: 1.2 !important;
+}
+
+.modal-cita-dialog .input,
+.modal-cita-dialog .select,
+.modal-cobro-dialog .input,
+.modal-cobro-dialog .select {
+  padding: 0.25rem 0.5rem !important;
+  font-size: 0.82rem !important;
+  border-radius: 0.4rem !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  min-block-size: 32px !important;
+  box-sizing: border-box !important;
+}
+
+.modal-cita-dialog textarea.input {
+  min-height: 38px !important;
+  max-height: 42px !important;
+  height: 38px !important;
+  min-block-size: 38px !important;
+  padding: 0.25rem 0.45rem !important;
+  line-height: 1.25 !important;
+  resize: none !important;
+}
+
+.modal-cita-dialog .modal-header,
+.modal-cobro-dialog .modal-header {
+  padding: 0 !important;
+  margin-bottom: 0.1rem !important;
+}
+
+.modal-cita-dialog .modal-icon-badge,
+.modal-cobro-dialog .modal-icon-badge {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  font-size: 0.95rem !important;
+}
+
+.modal-cita-dialog .modal-footer,
+.modal-cobro-dialog .modal-footer {
+  margin-top: 0.35rem !important;
+  padding-top: 0.35rem !important;
+  border-top: 1px solid rgba(125, 125, 125, 0.15) !important;
+}
+
+.modal-cita-dialog .modal-footer .button,
+.modal-cobro-dialog .modal-footer .button {
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 0.2rem 0.65rem !important;
+  font-size: 0.78rem !important;
+}
+
+/* Ocultar cualquier barra de desplazamiento en los modales */
+.modal-cita-dialog,
+.modal-cobro-dialog,
+.modal-cita-dialog .modal-box,
+.modal-cobro-dialog .modal-box,
+#form-cita,
+#form-cobro-cita {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.modal-cita-dialog::-webkit-scrollbar,
+.modal-cobro-dialog::-webkit-scrollbar,
+.modal-cita-dialog .modal-box::-webkit-scrollbar,
+.modal-cobro-dialog .modal-box::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+@media (max-width: 600px), (max-height: 480px) {
+  .modal-cita-dialog,
+  .modal-cobro-dialog {
+    max-width: 96vw !important;
+    max-height: 92vh !important;
+    overflow-y: auto !important;
+  }
+
+  .modal-cita-dialog .modal-box,
+  .modal-cobro-dialog .modal-box {
+    padding: 0.75rem !important;
+    overflow-y: auto !important;
+  }
+
+  .cita-form-grid,
+  .cobro-form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.5rem !important;
+  }
+}
+
+/* =====================================================================
+   ESTILOS PARA MÚLTIPLES COBROS POR CITA
+   ===================================================================== */
+.modal-cobro-dialog .modal-box {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(14, 165, 233, 0.4) transparent !important;
+}
+
+.modal-cobro-dialog .modal-box::-webkit-scrollbar {
+  display: block !important;
+  width: 5px !important;
+}
+
+.modal-cobro-dialog .modal-box::-webkit-scrollbar-thumb {
+  background: rgba(14, 165, 233, 0.35) !important;
+  border-radius: 4px !important;
+}
+
+.cobros-lista-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(14, 165, 233, 0.4) transparent;
+}
+
+.cobros-lista-container::-webkit-scrollbar {
+  display: block !important;
+  width: 4px !important;
+}
+
+.cobros-lista-container::-webkit-scrollbar-thumb {
+  background: rgba(14, 165, 233, 0.35) !important;
+  border-radius: 4px !important;
+}
+
+.cobro-list-item {
+  transition: all 0.2s ease;
+}
+
+.cobro-list-item:hover {
+  background: rgba(2, 132, 199, 0.08) !important;
+  border-color: rgba(2, 132, 199, 0.4) !important;
+}
+
+.cobro-item-selected {
+  box-shadow: 0 0 0 1px var(--primary, #0284c7), 0 2px 8px rgba(2, 132, 199, 0.15) !important;
+}
+
+.btn-otro-pago {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-otro-pago:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 600px) {
+  .cobro-top-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.4rem !important;
+  }
+}
+
+.modal-cobro-dialog #cobro-monto-usd,
+.modal-cobro-dialog .input-currency {
+  padding-left: 2rem !important;
+}
+
+.cobro-currency-symbol {
+  user-select: none;
+  font-family: inherit;
+}
+

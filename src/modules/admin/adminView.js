@@ -3,6 +3,8 @@
  * Modal exclusivo para usuarios con rol 'admin' verificado en 'user_roles'.
  */
 
+import { renderTasaSection, renderTasaModal } from '../tasaCambio/tasaCambioView.js';
+
 export function renderAdminConfigModal() {
   return `
     <!-- Modal Principal de Configuración Administrativa -->
@@ -42,6 +44,9 @@ export function renderAdminConfigModal() {
           </button>
           <button type="button" id="admin-nav-roles" class="button btn-admin-tab" data-variant="ghost" data-size="sm">
             <span>🛡️🔑 Roles y Permisos</span>
+          </button>
+          <button type="button" id="admin-nav-tasa" class="button btn-admin-tab" data-variant="ghost" data-size="sm">
+            <span>💵 Tasa de Cambio</span>
           </button>
         </nav>
 
@@ -109,6 +114,17 @@ export function renderAdminConfigModal() {
                     Administrar la tabla roles y asignar permisos de lectura/escritura en roles_permision sobre los objetos del sistema.
                   </p>
                 </div>
+              <!-- Botón 5: Tasas de Cambio (BCV USD) -->
+              <button type="button" id="btn-admin-open-tasa" class="admin-feature-card box" data-surface="sunken" data-border>
+                <div class="feature-card-icon-wrap" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+                  <span class="feature-card-icon">💵</span>
+                </div>
+                <div class="feature-card-text">
+                  <h4 class="feature-card-title">Tasas de Cambio (BCV)</h4>
+                  <p class="feature-card-desc">
+                    Control de tasas de cambio históricas y scraping automático en tiempo real desde el portal oficial del BCV.
+                  </p>
+                </div>
                 <div class="feature-card-arrow">➜</div>
               </button>
 
@@ -164,15 +180,28 @@ export function renderAdminConfigModal() {
           <section id="admin-section-doctor" class="admin-section stack" data-gap="md" style="display: none;">
             <div class="cluster" data-justify="between" data-align="center">
               <div>
-                <h4 style="margin: 0; font-size: 1rem;">🩺 Registro de Doctores y Especialistas</h4>
-                <small style="opacity: 0.75;">Odontólogos asociados al sistema</small>
+                <h4 style="margin: 0; font-size: 1rem;">🩺 Gestión de Doctores y Especialistas</h4>
+                <small style="opacity: 0.75;">Odontólogos asociados a los consultorios del sistema</small>
               </div>
               <button type="button" class="button btn-admin-back-hub" data-variant="ghost" data-size="sm">
                 ◀ Volver al Menú
               </button>
             </div>
 
+            <!-- Formulario CRUD de Doctor (Crear / Modificar) -->
             <form id="form-admin-doctor" class="box stack" data-surface="sunken" data-border data-gap="sm">
+              <input type="hidden" id="admin-doctor-id" value="" />
+              
+              <div class="cluster" data-justify="between" data-align="center" style="border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.08)); padding-bottom: 0.4rem;">
+                <div class="cluster" data-gap="xs" data-align="center">
+                  <span id="admin-doctor-form-badge" class="badge" data-paint="primary" style="font-size: 0.75rem;">➕ Nuevo Especialista</span>
+                  <span id="admin-doctor-form-indicator" style="font-size: 0.8rem; opacity: 0.85;">Completar datos del doctor</span>
+                </div>
+                <button type="button" id="btn-cancel-doctor-form" class="button" data-variant="ghost" data-size="xs" style="display: none; color: #ef4444;">
+                  ✖ Cancelar Edición
+                </button>
+              </div>
+
               <div class="grid grid-cols-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                 <div class="field">
                   <label for="admin-doctor-name" class="label">Nombre del Especialista *</label>
@@ -180,10 +209,13 @@ export function renderAdminConfigModal() {
                 </div>
 
                 <div class="field">
-                  <label for="admin-doctor-consultorio" class="label">Consultorio Asignado</label>
-                  <select id="admin-doctor-consultorio" class="input select">
-                    <option value="">-- Seleccionar Consultorio (Opcional) --</option>
+                  <label for="admin-doctor-consultorio" class="label">Consultorio / Sede Asignada *</label>
+                  <select id="admin-doctor-consultorio" class="input select" required disabled style="cursor: not-allowed; opacity: 0.95; background: rgba(255,255,255,0.06);">
+                    <option value="" disabled selected>Cargando consultorio de la sesión...</option>
                   </select>
+                  <small id="admin-doctor-consultorio-hint" style="font-size: 0.75rem; color: #3b82f6; display: block; margin-top: 3px;">
+                    🔒 Sede fijada al consultorio de la sesión activa
+                  </small>
                 </div>
               </div>
 
@@ -206,9 +238,14 @@ export function renderAdminConfigModal() {
               </div>
             </form>
 
-            <!-- Lista de Doctores Registrados -->
+            <!-- Lista de Doctores Registrados (Filtrados por consultorio logueado) -->
             <div class="stack" data-gap="xs">
-              <h5 style="margin: 0; font-size: 0.85rem; font-weight: 600;">Especialistas Registrados</h5>
+              <div class="cluster" data-justify="between" data-align="center">
+                <h5 style="margin: 0; font-size: 0.85rem; font-weight: 600;">Especialistas de la Sede</h5>
+                <span id="admin-doctor-filter-badge" class="badge" data-paint="info" style="font-size: 0.75rem;">
+                  🏢 Sede Activa
+                </span>
+              </div>
               <div id="admin-doctores-container" class="admin-items-list-container">
                 <p style="font-size: 0.82rem; opacity: 0.7;">Cargando doctores...</p>
               </div>
@@ -294,6 +331,17 @@ export function renderAdminConfigModal() {
                 </div>
               </div>
 
+              <!-- Consultorio / Sede Asignada -->
+              <div class="field">
+                <label for="admin-user-consultorio" class="label">🏢 Consultorio / Sede Asignada</label>
+                <select id="admin-user-consultorio" class="input select">
+                  <option value="">🌐 Todos los consultorios (Acceso Global)</option>
+                </select>
+                <small style="opacity: 0.7; font-size: 0.7rem; display: block; margin-top: 0.2rem;">
+                  Si se deja vacío, el usuario tiene acceso a todos los consultorios. Si se selecciona uno, solo verá esa sede al iniciar sesión.
+                </small>
+              </div>
+
               <!-- Estado Activo y Botones de Acción -->
               <div class="cluster" data-justify="between" data-align="center" style="margin-top: 0.35rem;">
                 <label class="cluster" data-gap="xs" style="cursor: pointer; user-select: none;">
@@ -330,13 +378,14 @@ export function renderAdminConfigModal() {
                     <th style="padding: 0.65rem 0.85rem; text-align: left; font-size: 0.8rem;">Usuario</th>
                     <th style="padding: 0.65rem 0.85rem; text-align: left; font-size: 0.8rem;">Contacto</th>
                     <th style="padding: 0.65rem 0.85rem; text-align: center; font-size: 0.8rem;">Rol Asignado</th>
+                    <th style="padding: 0.65rem 0.85rem; text-align: center; font-size: 0.8rem;">Sede Autorizada</th>
                     <th style="padding: 0.65rem 0.85rem; text-align: center; font-size: 0.8rem;">Estado</th>
                     <th style="padding: 0.65rem 0.85rem; text-align: right; font-size: 0.8rem;">Acciones</th>
                   </tr>
                 </thead>
                 <tbody id="admin-users-table-body">
                   <tr>
-                    <td colspan="5" style="padding: 1.5rem; text-align: center; opacity: 0.7;">
+                    <td colspan="6" style="padding: 1.5rem; text-align: center; opacity: 0.7;">
                       Cargando lista de usuarios y roles...
                     </td>
                   </tr>
@@ -504,6 +553,10 @@ export function renderAdminConfigModal() {
             </div>
 
           </section>
+
+          <!-- 5. VISTA: GESTIÓN DE TASAS DE CAMBIO (CRUD TABLA tasa_cambio) -->
+          ${renderTasaSection()}
+
         </div>
 
         <!-- Footer del Modal -->
@@ -513,5 +566,8 @@ export function renderAdminConfigModal() {
 
       </div>
     </dialog>
+
+    <!-- Modal de Registro/Edición de Tasa de Cambio con Scraping BCV -->
+    ${renderTasaModal()}
   `;
 }

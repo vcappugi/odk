@@ -6,14 +6,18 @@
 
 import { adminModel } from './adminModel.js';
 import { authModel } from '../auth/authModel.js';
+import { consultorioModel } from '../consultorio/consultorioModel.js';
 import { notificationService } from '../../services/notificationService.js';
 import { permissionService } from '../../services/permissionService.js';
+import { tasaCambioController } from '../tasaCambio/tasaCambioController.js';
 import { $ } from '../../utils/dom.js';
 
 export const adminController = {
   init() {
     this.bindEvents();
     this.updateVisibility();
+    tasaCambioController.init();
+    this.loadConsultoriosDoctorSelect();
   },
 
   /**
@@ -84,6 +88,8 @@ export const adminController = {
         this.switchSection('users');
       } else if (e.target.closest('#admin-nav-roles') || e.target.closest('#btn-admin-open-roles')) {
         this.switchSection('roles');
+      } else if (e.target.closest('#admin-nav-tasa') || e.target.closest('#btn-admin-open-tasa')) {
+        this.switchSection('tasa');
       } else if (e.target.closest('.btn-admin-back-hub')) {
         this.switchSection('hub');
       }
@@ -151,6 +157,21 @@ export const adminController = {
         if (confirm(`¿Estás seguro de eliminar el consultorio "${name}"?`)) {
           await this.handleDeleteConsultorio(id);
         }
+        return;
+      }
+
+      // Editar doctor
+      const editDocBtn = e.target.closest('.btn-admin-edit-doctor');
+      if (editDocBtn) {
+        const id = editDocBtn.getAttribute('data-id');
+        await this.handleEditDoctor(id);
+        return;
+      }
+
+      // Cancelar edición de doctor
+      const cancelDocBtn = e.target.closest('#btn-cancel-doctor-form');
+      if (cancelDocBtn) {
+        this.resetDoctorForm();
         return;
       }
 
@@ -280,6 +301,19 @@ export const adminController = {
         return;
       }
     });
+
+    // 6. Sincronización reactiva si cambia el consultorio activo o la sesión
+    window.addEventListener('consultorio:changed', async () => {
+      await this.loadConsultoriosDoctorSelect();
+      const docSection = $('#admin-section-doctor');
+      if (docSection && docSection.classList.contains('active')) {
+        await this.loadDoctoresList();
+      }
+    });
+
+    window.addEventListener('auth:change', async () => {
+      await this.loadConsultoriosDoctorSelect();
+    });
   },
 
   openModal() {
@@ -287,6 +321,7 @@ export const adminController = {
     if (!dialog) return;
 
     this.switchSection('hub');
+    this.loadConsultoriosDoctorSelect();
 
     if (typeof dialog.showModal === 'function') {
       dialog.showModal();
@@ -315,7 +350,8 @@ export const adminController = {
       consultorio: $('#admin-section-consultorio'),
       doctor: $('#admin-section-doctor'),
       users: $('#admin-section-users'),
-      roles: $('#admin-section-roles')
+      roles: $('#admin-section-roles'),
+      tasa: $('#admin-section-tasa')
     };
 
     const navButtons = {
@@ -323,7 +359,8 @@ export const adminController = {
       consultorio: $('#admin-nav-consultorio'),
       doctor: $('#admin-nav-doctor'),
       users: $('#admin-nav-users'),
-      roles: $('#admin-nav-roles')
+      roles: $('#admin-nav-roles'),
+      tasa: $('#admin-nav-tasa')
     };
 
     // Actualizar visibilidad de secciones
@@ -367,6 +404,10 @@ export const adminController = {
       notificationService.warning('Tu rol no tiene permiso para consultar Roles y Permisos.');
       return this.switchSection('hub');
     }
+    if (section === 'tasa' && !permissionService.canRead('admin-section-tasa')) {
+      notificationService.warning('Tu rol no tiene permiso para consultar Tasas de Cambio.');
+      return this.switchSection('hub');
+    }
 
     // Cargar datos correspondientes al cambiar de sección
     if (section === 'consultorio') {
@@ -376,10 +417,13 @@ export const adminController = {
     } else if (section === 'users') {
       await Promise.all([
         this.loadRolesForUserSelect(),
+        this.loadConsultoriosForUserSelect(),
         this.loadUsersTable()
       ]);
     } else if (section === 'roles') {
       await this.loadRolesSection();
+    } else if (section === 'tasa') {
+      await tasaCambioController.loadTable();
     }
   },
 
@@ -485,33 +529,74 @@ export const adminController = {
    * Carga formulario de doctores (rellena select de consultorios) y lista de doctores
    */
   async loadDoctoresSection() {
-    const select = $('#admin-doctor-consultorio');
-    if (select) {
-      const consultorios = await adminModel.getConsultorios();
-      select.innerHTML = `
-        <option value="">-- Sin Consultorio Asignado --</option>
-        ${consultorios.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')}
-      `;
-    }
-
+    await this.loadConsultoriosDoctorSelect();
     await this.loadDoctoresList();
   },
 
   /**
-   * Carga y renderiza la lista de doctores
+   * Carga exclusivamente el consultorio con el que se logueó el usuario en el selector de doctores
+   * y lo mantiene bloqueado para no permitir ningún otro consultorio.
+   */
+  async loadConsultoriosDoctorSelect() {
+    const select = $('#admin-doctor-consultorio');
+    if (!select) return;
+
+    try {
+      const activeConsultorio = consultorioModel.getActiveConsultorio() 
+        || authModel.getActiveConsultorio() 
+        || authModel.getCurrentUser()?.consultorio;
+      
+      const activeId = activeConsultorio?.id ? String(activeConsultorio.id) : '';
+
+      if (activeConsultorio && activeId) {
+        select.innerHTML = `<option value="${activeId}" selected>🏢 ${activeConsultorio.nombre} (Sede de la sesión activa)</option>`;
+        select.value = activeId;
+        select.disabled = true;
+      } else {
+        select.innerHTML = `<option value="" disabled selected>No hay sede activa en la sesión</option>`;
+        select.disabled = true;
+      }
+
+      const hint = $('#admin-doctor-consultorio-hint');
+      if (hint && activeConsultorio) {
+        hint.textContent = `🔒 Sede fijada al consultorio de la sesión: ${activeConsultorio.nombre}`;
+      }
+    } catch (err) {
+      console.warn('[AdminController] Error cargando consultorio para doctor:', err);
+    }
+  },
+
+  /**
+   * Carga y renderiza la lista de doctores filtrada por el consultorio logueado
    */
   async loadDoctoresList() {
     const container = $('#admin-doctores-container');
+    const filterBadge = $('#admin-doctor-filter-badge');
     if (!container) return;
 
-    container.innerHTML = '<p style="font-size: 0.82rem; opacity: 0.7;">Cargando doctores...</p>';
+    const activeConsultorio = consultorioModel.getActiveConsultorio() || authModel.getActiveConsultorio();
+    if (filterBadge) {
+      filterBadge.textContent = activeConsultorio?.nombre 
+        ? `🏢 Filtrado por: ${activeConsultorio.nombre}` 
+        : '🏢 Sede Activa';
+    }
+
+    container.innerHTML = '<p style="font-size: 0.82rem; opacity: 0.7;">Cargando doctores de la sede...</p>';
 
     try {
-      const doctores = await adminModel.getDoctores();
+      // Filtrar para que solo se puedan ver los doctores del consultorio al que se logueó
+      const targetConsultorioId = activeConsultorio?.id ? Number(activeConsultorio.id) : null;
+      const doctores = await adminModel.getDoctores(targetConsultorioId);
+
       if (!doctores || doctores.length === 0) {
         container.innerHTML = `
-          <div class="box" data-surface="raised" data-border style="padding: 1rem; text-align: center;">
-            <p style="margin: 0; font-size: 0.85rem; opacity: 0.8;">No hay doctores registrados aún. Agrega uno nuevo arriba.</p>
+          <div class="box" data-surface="raised" data-border style="padding: 1.25rem; text-align: center;">
+            <p style="margin: 0; font-size: 0.9rem; font-weight: 500;">
+              No hay doctores registrados en <strong>${activeConsultorio?.nombre || 'este consultorio'}</strong> aún.
+            </p>
+            <p style="margin: 0.35rem 0 0; opacity: 0.7; font-size: 0.8rem;">
+              Usa el formulario superior para registrar y asignar especialistas a esta sede.
+            </p>
           </div>
         `;
         return;
@@ -520,21 +605,30 @@ export const adminController = {
       container.innerHTML = `
         <div class="admin-items-grid">
           ${doctores.map(d => `
-            <div class="admin-item-card box" data-surface="raised" data-border>
+            <div class="admin-item-card box" data-surface="raised" data-border id="admin-doc-card-${d.id}">
               <div class="cluster" data-justify="between" data-align="center">
                 <div class="cluster" data-gap="xs" data-align="center">
                   <span style="font-size: 1.25rem;">🩺</span>
                   <div>
                     <strong style="font-size: 0.9rem; display: block;">${d.nombre}</strong>
-                    <small style="opacity: 0.75; font-size: 0.78rem;">
-                      📞 ${d.telefono || 'Sin tel'} | ✉️ ${d.mail || 'Sin correo'}
-                      ${d.consultorio ? ` | 🏢 Sede: ${d.consultorio.nombre}` : ''}
+                    <div class="cluster" data-gap="2xs" style="margin-top: 2px;">
+                      <span class="badge" data-paint="primary" style="font-size: 0.72rem; padding: 1px 6px;">
+                        🏢 ${d.consultorio?.nombre || (d.consultorio_id ? `Consultorio #${d.consultorio_id}` : 'Sin Consultorio')}
+                      </span>
+                    </div>
+                    <small style="opacity: 0.75; font-size: 0.78rem; display: block; margin-top: 3px;">
+                      📞 ${d.telefono || 'Sin teléfono'} | ✉️ ${d.mail || 'Sin correo'}
                     </small>
                   </div>
                 </div>
-                <button type="button" class="button btn-admin-del-doctor" data-variant="ghost" data-size="sm" data-id="${d.id}" data-name="${d.nombre}" title="Eliminar doctor" style="color: #ef4444;">
-                  🗑️
-                </button>
+                <div class="cluster" data-gap="2xs">
+                  <button type="button" class="button btn-admin-edit-doctor" data-variant="ghost" data-size="sm" data-id="${d.id}" title="Editar especialista">
+                    ✏️
+                  </button>
+                  <button type="button" class="button btn-admin-del-doctor" data-variant="ghost" data-size="sm" data-id="${d.id}" data-name="${d.nombre}" title="Eliminar doctor" style="color: #ef4444;">
+                    🗑️
+                  </button>
+                </div>
               </div>
             </div>
           `).join('')}
@@ -546,41 +640,139 @@ export const adminController = {
   },
 
   /**
-   * Guarda un nuevo doctor
+   * Carga un doctor en el formulario para modificarlo (Modo Edición)
    */
-  async handleSaveDoctor() {
-    const submitBtn = $('#btn-submit-doctor-admin');
+  async handleEditDoctor(id) {
+    try {
+      const doc = await adminModel.getDoctorById(id);
+      if (!doc) {
+        notificationService.error('No se encontró el especialista seleccionado.');
+        return;
+      }
+
+      const idInput = $('#admin-doctor-id');
+      const nameInput = $('#admin-doctor-name');
+      const phoneInput = $('#admin-doctor-phone');
+      const mailInput = $('#admin-doctor-mail');
+      const submitBtn = $('#btn-submit-doctor-admin');
+      const cancelBtn = $('#btn-cancel-doctor-form');
+      const formBadge = $('#admin-doctor-form-badge');
+      const formIndicator = $('#admin-doctor-form-indicator');
+
+      if (idInput) idInput.value = doc.id;
+      if (nameInput) nameInput.value = doc.nombre || '';
+      if (phoneInput) phoneInput.value = doc.telefono || '';
+      if (mailInput) mailInput.value = doc.mail || '';
+
+      // Asegurar que el consultorio sea estrictamente el logueado
+      await this.loadConsultoriosDoctorSelect();
+
+      if (formBadge) {
+        formBadge.textContent = '✏️ Modo Edición';
+        formBadge.setAttribute('data-paint', 'warning');
+      }
+      if (formIndicator) {
+        formIndicator.textContent = `Modificando a: ${doc.nombre}`;
+      }
+      if (cancelBtn) cancelBtn.style.display = 'inline-flex';
+      if (submitBtn) submitBtn.textContent = '💾 Actualizar Doctor';
+
+      nameInput?.focus();
+      $('#form-admin-doctor')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (err) {
+      notificationService.error('Error al cargar datos del doctor: ' + err.message);
+    }
+  },
+
+  /**
+   * Restablece el formulario de doctor al modo de creación manteniendo el consultorio activo
+   */
+  resetDoctorForm() {
+    const idInput = $('#admin-doctor-id');
     const nameInput = $('#admin-doctor-name');
     const phoneInput = $('#admin-doctor-phone');
     const mailInput = $('#admin-doctor-mail');
-    const consultorioSelect = $('#admin-doctor-consultorio');
+    const cancelBtn = $('#btn-cancel-doctor-form');
+    const formBadge = $('#admin-doctor-form-badge');
+    const formIndicator = $('#admin-doctor-form-indicator');
+    const submitBtn = $('#btn-submit-doctor-admin');
 
+    if (idInput) idInput.value = '';
+    if (nameInput) nameInput.value = '';
+    if (phoneInput) phoneInput.value = '';
+    if (mailInput) mailInput.value = '';
+
+    if (cancelBtn) cancelBtn.style.display = 'none';
+    if (formBadge) {
+      formBadge.textContent = '➕ Nuevo Especialista';
+      formBadge.setAttribute('data-paint', 'primary');
+    }
+    if (formIndicator) {
+      formIndicator.textContent = 'Completar datos del doctor';
+    }
+    if (submitBtn) submitBtn.textContent = '💾 Guardar Doctor';
+
+    // Restablecer el select estrictamente al consultorio con el que se logueó el usuario
+    this.loadConsultoriosDoctorSelect();
+  },
+
+  /**
+   * Guarda o actualiza un doctor en el CRUD
+   */
+  async handleSaveDoctor() {
+    const submitBtn = $('#btn-submit-doctor-admin');
+    const idInput = $('#admin-doctor-id');
+    const nameInput = $('#admin-doctor-name');
+    const phoneInput = $('#admin-doctor-phone');
+    const mailInput = $('#admin-doctor-mail');
+
+    const id = idInput?.value ? Number(idInput.value) : null;
     const nombre = nameInput?.value.trim();
     const telefono = phoneInput?.value.trim();
     const mail = mailInput?.value.trim();
-    const consultorio_id = consultorioSelect?.value || null;
 
     if (!nombre) {
       notificationService.error('Ingresa el nombre del doctor.');
       return;
     }
 
+    // No permitir otro consultorio que no sea el logueado
+    const activeConsultorio = consultorioModel.getActiveConsultorio() 
+      || authModel.getActiveConsultorio() 
+      || authModel.getCurrentUser()?.consultorio;
+
+    if (!activeConsultorio?.id) {
+      notificationService.error('Debes tener un consultorio activo en la sesión para guardar un doctor.');
+      return;
+    }
+
+    const consultorio_id = Number(activeConsultorio.id);
+
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Guardando...';
+      submitBtn.textContent = id ? 'Actualizando...' : 'Guardando...';
     }
 
     try {
-      await adminModel.createDoctor({ nombre, telefono, mail, consultorio_id });
-      notificationService.success(`Doctor "${nombre}" registrado con éxito.`);
-      $('#form-admin-doctor')?.reset();
+      if (id) {
+        await adminModel.updateDoctor(id, { nombre, telefono, mail, consultorio_id });
+        notificationService.success(`Doctor "${nombre}" actualizado con éxito.`);
+      } else {
+        await adminModel.createDoctor({ nombre, telefono, mail, consultorio_id });
+        notificationService.success(`Doctor "${nombre}" registrado con éxito.`);
+      }
+
+      this.resetDoctorForm();
       await this.loadDoctoresList();
+
+      // Notificar a otros módulos (calendario, citas, etc.) para refrescar la lista de doctores
+      window.dispatchEvent(new CustomEvent('doctors:changed'));
     } catch (err) {
       notificationService.error(err.message || 'Error al guardar doctor.');
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = '💾 Guardar Doctor';
+        submitBtn.textContent = id ? '💾 Actualizar Doctor' : '💾 Guardar Doctor';
       }
     }
   },
@@ -592,7 +784,11 @@ export const adminController = {
     try {
       await adminModel.deleteDoctor(id);
       notificationService.success('Doctor eliminado correctamente.');
+      if ($('#admin-doctor-id')?.value === String(id)) {
+        this.resetDoctorForm();
+      }
       await this.loadDoctoresList();
+      window.dispatchEvent(new CustomEvent('doctors:changed'));
     } catch (err) {
       notificationService.error(err.message || 'Error al eliminar doctor.');
     }
@@ -665,7 +861,28 @@ export const adminController = {
   },
 
   /**
-   * Carga la tabla de usuarios con sus roles en user_roles
+   * Carga las sedes registradas en el selector de consultorios del formulario de usuarios (#admin-user-consultorio)
+   * @param {number|string|null} selectedValue
+   */
+  async loadConsultoriosForUserSelect(selectedValue = null) {
+    const select = $('#admin-user-consultorio');
+    if (!select) return;
+
+    try {
+      const consultorios = await adminModel.getConsultorios();
+      let html = `<option value="">🌐 Todos los consultorios (Acceso Global)</option>`;
+      (consultorios || []).forEach(c => {
+        const isSel = selectedValue && String(selectedValue) === String(c.id) ? 'selected' : '';
+        html += `<option value="${c.id}" ${isSel}>🏢 ${c.nombre} ${c.direccion ? `(${c.direccion})` : ''}</option>`;
+      });
+      select.innerHTML = html;
+    } catch {
+      select.innerHTML = `<option value="">🌐 Todos los consultorios (Acceso Global)</option>`;
+    }
+  },
+
+  /**
+   * Carga la tabla de usuarios con sus roles en user_roles y consultorio asignado
    */
   async loadUsersTable(searchTerm = '') {
     const tbody = $('#admin-users-table-body');
@@ -674,14 +891,19 @@ export const adminController = {
 
     tbody.innerHTML = `
       <tr>
-        <td colspan="5" style="padding: 1.5rem; text-align: center; opacity: 0.7;">
+        <td colspan="6" style="padding: 1.5rem; text-align: center; opacity: 0.7;">
           Consultando usuarios y tabla user_roles en tiempo real...
         </td>
       </tr>
     `;
 
     try {
-      let users = await adminModel.getUsersWithRoles();
+      const [usersData, consultorios] = await Promise.all([
+        adminModel.getUsersWithRoles(),
+        adminModel.getConsultorios()
+      ]);
+      let users = usersData || [];
+      const consultorioMap = new Map((consultorios || []).map(c => [String(c.id), c.nombre]));
 
       if (searchTerm && searchTerm.trim().length > 0) {
         const term = searchTerm.toLowerCase().trim();
@@ -700,7 +922,7 @@ export const adminController = {
       if (!users || users.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="5" style="padding: 1.5rem; text-align: center; opacity: 0.7;">
+            <td colspan="6" style="padding: 1.5rem; text-align: center; opacity: 0.7;">
               No se encontraron usuarios registrados.
             </td>
           </tr>
@@ -728,6 +950,17 @@ export const adminController = {
               ` : `
                 <span class="badge" data-variant="ghost" style="opacity: 0.9; font-weight: 600;">
                   👤 ${u.role_name || 'usuario'}
+                </span>
+              `}
+            </td>
+            <td style="padding: 0.65rem 0.85rem; text-align: center;">
+              ${u.consultorio_id ? `
+                <span class="badge" data-paint="primary" style="font-size: 0.74rem; font-weight: 600;" title="Acceso exclusivo a esta sede">
+                  🏢 ${consultorioMap.get(String(u.consultorio_id)) || `Sede #${u.consultorio_id}`}
+                </span>
+              ` : `
+                <span class="badge" data-paint="success" style="font-size: 0.74rem; font-weight: 600;" title="Acceso a todas las sedes del sistema">
+                  🌐 Todas (Global)
                 </span>
               `}
             </td>
@@ -834,6 +1067,9 @@ export const adminController = {
       submitBtn.textContent = 'Guardando...';
     }
 
+    const consultorioVal = $('#admin-user-consultorio')?.value;
+    const consultorio_id = consultorioVal ? Number(consultorioVal) : null;
+
     try {
       if (id) {
         // Actualizar
@@ -845,6 +1081,7 @@ export const adminController = {
           clave,
           rol: roleName,
           role_id: roleId,
+          consultorio_id,
           activo
         });
         notificationService.success(`Usuario "${nombre}" actualizado correctamente.`);
@@ -858,6 +1095,7 @@ export const adminController = {
           clave,
           rol: roleName,
           role_id: roleId,
+          consultorio_id,
           activo
         });
         notificationService.success(`Usuario "${nombre}" registrado con éxito.`);
@@ -900,6 +1138,9 @@ export const adminController = {
       // Cargar roles y seleccionar el rol del usuario
       await this.loadRolesForUserSelect(user.role_id || user.rol);
 
+      // Cargar consultorios y seleccionar el consultorio asignado
+      await this.loadConsultoriosForUserSelect(user.consultorio_id);
+
       const activeCheck = $('#admin-user-active');
       if (activeCheck) activeCheck.checked = Boolean(user.activo !== false);
 
@@ -934,6 +1175,8 @@ export const adminController = {
     $('#admin-user-form-badge').setAttribute('data-paint', 'primary');
     $('#btn-cancel-user-form').style.display = 'none';
     $('#btn-submit-user-admin').textContent = '💾 Guardar Usuario';
+
+    this.loadConsultoriosForUserSelect();
 
     const activeCheck = $('#admin-user-active');
     if (activeCheck) activeCheck.checked = true;

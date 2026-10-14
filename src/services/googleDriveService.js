@@ -9,6 +9,7 @@ import { env } from '../config/env.js';
 export const GOOGLE_DRIVE_CONFIG = {
   FOLDER_ID: '13kU4_JR4ehQxVc-IQfRMLUOFR57MHt3J',
   FOLDER_URL: 'https://drive.google.com/drive/folders/13kU4_JR4ehQxVc-IQfRMLUOFR57MHt3J',
+  DEFAULT_WEBHOOK_URL: 'https://script.google.com/macros/s/AKfycbxURUZFZSseFvqj3scccuJlk9_gGAvZTYkKxw4GhlEA8fNknbqHcwn_dd9I_gjXWoD3/exec',
   LOCAL_STORAGE_KEY: 'odk_google_drive_webhook_url'
 };
 
@@ -16,6 +17,7 @@ export const googleDriveService = {
   /**
    * Obtiene la URL del Webhook de Google Apps Script configurada
    * Lee desde localStorage (si fue personalizado) o desde variables de entorno (Vercel / Vite / .env)
+   * con fallback garantizado a la URL oficial de producción.
    */
   getWebhookUrl() {
     // 1. Verificar si el usuario guardó una URL personalizada en localStorage
@@ -34,7 +36,8 @@ export const googleDriveService = {
       return envUrl;
     }
 
-    return '';
+    // 3. Fallback a la URL oficial de producción
+    return GOOGLE_DRIVE_CONFIG.DEFAULT_WEBHOOK_URL;
   },
 
   /**
@@ -122,6 +125,7 @@ export const googleDriveService = {
       throw new Error(validation.error);
     }
 
+    // 1. Probar conexión directa
     try {
       const response = await fetch(validation.url, {
         method: 'GET',
@@ -131,29 +135,47 @@ export const googleDriveService = {
         }
       });
 
-      if (!response.ok) {
-        throw new Error(`El servidor respondió con código HTTP ${response.status} (${response.statusText})`);
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          success: true,
+          data,
+          message: 'Conexión exitosa con el Webhook de Google Apps Script.'
+        };
       }
-
-      const data = await response.json();
-      return {
-        success: true,
-        data,
-        message: 'Conexión exitosa con el Webhook de Google Apps Script.'
-      };
-    } catch (err) {
-      console.error('[GoogleDriveService] Error probando conexión con Webhook:', err);
-      if (err.message && err.message.includes('Failed to fetch')) {
-        throw new Error(
-          'Error de conexión (Failed to fetch).\n\n' +
-          'Causas más frecuentes:\n' +
-          '1. Permisos en Google Apps Script: Al implementar, debes elegir obligatoriamente "Quién tiene acceso: Cualquier usuario" (Anyone). Si seleccionaste "Solo yo", Google bloquea la conexión.\n' +
-          '2. Bloqueador de anuncios / extensiones: Algunos bloqueadores restringen scripts de terceros.\n\n' +
-          'Solución: Ve a script.google.com > Implementar > Administrar implementaciones > Editar ✏️ > Cambia "Quién tiene acceso" a "Cualquier usuario" > Implementar.'
-        );
-      }
-      throw err;
+    } catch (directErr) {
+      console.warn('[GoogleDriveService] Prueba directa falló, intentando proxy Vercel:', directErr);
     }
+
+    // 2. Probar a través del proxy de Vercel (/api/upload-drive)
+    try {
+      const response = await fetch('/api/upload-drive', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'x-target-webhook-url': validation.url
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          success: true,
+          data,
+          message: 'Conexión exitosa con Google Apps Script (a través del Proxy Vercel).'
+        };
+      }
+    } catch (proxyErr) {
+      console.warn('[GoogleDriveService] Prueba vía proxy también falló:', proxyErr);
+    }
+
+    throw new Error(
+      'Error de conexión (Failed to fetch).\n\n' +
+      'Causas más frecuentes:\n' +
+      '1. Permisos en Google Apps Script: Al implementar, debes elegir obligatoriamente "Quién tiene acceso: Cualquier usuario" (Anyone). Si seleccionaste "Solo yo", Google bloquea la conexión.\n' +
+      '2. Bloqueador de anuncios / extensiones: Algunos bloqueadores restringen scripts de terceros.\n\n' +
+      'Solución: Ve a script.google.com > Implementar > Administrar implementaciones > Editar ✏️ > Cambia "Quién tiene acceso" a "Cualquier usuario" > Implementar.'
+    );
   },
 
   /**
@@ -267,42 +289,58 @@ export const googleDriveService = {
       base64: base64Data
     };
 
-    let response;
-    try {
-      // Usar Content-Type text/plain estándar sin charset extra para evitar preflights OPTIONS
-      response = await fetch(validation.url, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: {
+    // Intentar subida: primero directa al webhook, con fallback automático al proxy de Vercel (/api/upload-drive)
+    const endpoints = [
+      { name: 'direct', url: validation.url },
+      { name: 'vercel-proxy', url: '/api/upload-drive' }
+    ];
+
+    let result = null;
+    let lastError = null;
+
+    for (const ep of endpoints) {
+      try {
+        const headers = {
           'Content-Type': 'text/plain'
-        },
-        redirect: 'follow'
-      });
-    } catch (fetchErr) {
-      console.error('[GoogleDriveService] Error en fetch a Google Apps Script:', fetchErr);
+        };
+        if (ep.name === 'vercel-proxy') {
+          headers['x-target-webhook-url'] = validation.url;
+        }
+
+        const response = await fetch(ep.url, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          headers,
+          redirect: 'follow'
+        });
+
+        if (!response.ok) {
+          throw new Error(`Código HTTP ${response.status} en endpoint ${ep.name}`);
+        }
+
+        const json = await response.json();
+        if (json && json.status === 'success') {
+          result = json;
+          break;
+        } else if (json && json.status === 'error') {
+          throw new Error(json.message || 'Error reportado por el Webhook');
+        }
+      } catch (err) {
+        console.warn(`[GoogleDriveService] Intento fallido con endpoint '${ep.name}':`, err);
+        lastError = err;
+      }
+    }
+
+    if (!result) {
+      console.error('[GoogleDriveService] Todos los endpoints de subida fallaron:', lastError);
       throw new Error(
-        'Error de conexión con Google Drive (Failed to fetch).\n\n' +
-        'El navegador bloqueó la conexión. La causa casi siempre es la configuración de permisos en Google Apps Script:\n' +
-        '1. La aplicación web DEBE estar implementada con "Quién tiene acceso: Cualquier usuario" (Anyone). Si está en "Solo yo", Google redirige al login y el navegador bloquea la subida por seguridad CORS.\n' +
+        'Error de conexión con Google Drive.\n\n' +
+        'El navegador no pudo completar la subida. Causas más frecuentes:\n' +
+        '1. La aplicación web en Google Apps Script debe estar implementada con "Quién tiene acceso: Cualquier usuario" (Anyone).\n' +
         '2. La URL debe terminar en /exec (no en /dev ni /edit).\n\n' +
-        '👉 Para corregirlo en 1 minuto:\n' +
+        '👉 Para verificarlo:\n' +
         'Abre script.google.com > Tu proyecto > "Implementar" > "Administrar implementaciones" > Edita la implementación (ícono lápiz ✏️) > En "Quién tiene acceso" selecciona "Cualquier usuario" > Implementar.'
       );
-    }
-
-    if (!response.ok) {
-      throw new Error(`Error en el servidor de Google Apps Script: ${response.status} ${response.statusText}`);
-    }
-
-    let result;
-    try {
-      result = await response.json();
-    } catch {
-      throw new Error('El Webhook respondió pero no devolvió un JSON válido. Verifica el código en Google Apps Script.');
-    }
-
-    if (result.status !== 'success') {
-      throw new Error(result.message || 'Error desconocido al procesar la imagen en Google Drive.');
     }
 
     const fileId = result.fileId;
