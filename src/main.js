@@ -37,6 +37,8 @@ import { renderHistorialModal } from './modules/historial/historialView.js';
 import { historialController } from './modules/historial/historialController.js';
 import { renderOdontogramaModal } from './modules/odontograma/odontogramaView.js';
 import { odontogramaController } from './modules/odontograma/odontogramaController.js';
+import { renderFinanceSection } from './modules/finance/financeView.js';
+import { financeController } from './modules/finance/financeController.js';
 
 /**
  * Inicialización de la aplicación
@@ -82,6 +84,9 @@ async function bootstrapApp() {
 
   // 12. Inicializar controlador de odontograma clínico (CRUD detalle_odontograma)
   odontogramaController.init();
+
+  // 13. Inicializar controlador del Panel Financiero (Dashboard e Indicadores)
+  financeController.init();
 
   console.log('✅ ODONTOKRIS inicializado con éxito.');
 }
@@ -283,6 +288,9 @@ function mountAppLayout() {
             </div>
           </div>
         </main>
+
+        <!-- SECCIÓN PRINCIPAL: Panel Financiero y Dashboard Económico -->
+        ${renderFinanceSection()}
       </div>
     </div>
 

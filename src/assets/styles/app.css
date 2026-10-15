@@ -3965,3 +3965,339 @@ html[data-theme="dark"] .badge-status-atendida {
   font-family: inherit;
 }
 
+/* ==========================================================================
+   PANEL FINANCIERO & DASHBOARD ECONÓMICO (Módulo Finance)
+   ========================================================================== */
+
+.finance-main-section {
+  width: 100%;
+  animation: fadeInFinance 0.28s ease-out;
+  padding: 1.25rem 1.5rem;
+  border-radius: 1rem;
+}
+
+@keyframes fadeInFinance {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.finance-header {
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(125, 125, 125, 0.16);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.finance-header-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.16) 0%, rgba(16, 185, 129, 0.16) 100%);
+  border: 1px solid rgba(2, 132, 199, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.45rem;
+  flex-shrink: 0;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.12);
+}
+
+.finance-toolbar {
+  flex-wrap: wrap;
+}
+
+.finance-nav-tabs {
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgba(125, 125, 125, 0.14);
+  flex-wrap: wrap;
+}
+
+.btn-finance-tab {
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+}
+
+.btn-finance-tab.is-active {
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+}
+
+/* --- Cuadrícula de KPIs Principales --- */
+.finance-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.85rem;
+}
+
+.finance-kpi-card {
+  padding: 0.85rem 1.1rem;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 120px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.finance-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.kpi-card-highlight {
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(2, 132, 199, 0.04) 100%) !important;
+}
+
+.finance-kpi-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  opacity: 0.8;
+  letter-spacing: -0.01em;
+}
+
+.finance-kpi-icon-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+}
+
+.finance-kpi-values-wrap {
+  margin: 0.35rem 0;
+}
+
+.finance-kpi-main-val {
+  display: block;
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.finance-kpi-sub-val {
+  display: block;
+  font-size: 0.74rem;
+  opacity: 0.8;
+  margin-top: 0.15rem;
+  font-weight: 500;
+}
+
+/* --- Cuadrícula de 2 Columnas --- */
+.finance-two-col-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 0.85rem;
+}
+
+.finance-card {
+  padding: 1rem 1.2rem;
+  border-radius: 12px;
+}
+
+/* --- Gráfico de Barras Semanal --- */
+.finance-bar-chart-container {
+  height: 180px;
+  display: flex;
+  align-items: flex-end;
+  padding: 1.2rem 0.5rem 0.5rem;
+  background: rgba(125, 125, 125, 0.04);
+  border-radius: 8px;
+  border: 1px solid rgba(125, 125, 125, 0.1);
+}
+
+.finance-bars-track {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  height: 100%;
+  gap: 0.4rem;
+}
+
+.finance-bar-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.finance-bar-column:hover .finance-bar-fill {
+  filter: brightness(1.15);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}
+
+.finance-bar-amount {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--primary, #0284c7);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+.finance-bar-column.has-revenue .finance-bar-amount {
+  color: #10b981;
+  font-weight: 800;
+}
+
+.finance-bar-fill-wrap {
+  width: 100%;
+  max-width: 36px;
+  height: 110px;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(125, 125, 125, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.finance-bar-fill {
+  width: 100%;
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  border-radius: 6px 6px 2px 2px;
+  transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 4px;
+}
+
+.finance-bar-column:not(.has-revenue) .finance-bar-fill {
+  background: rgba(125, 125, 125, 0.25);
+}
+
+.finance-bar-day-name {
+  margin-top: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.finance-bar-count-badge {
+  font-size: 0.62rem;
+  opacity: 0.65;
+  line-height: 1;
+}
+
+/* --- Tendencia Semanal --- */
+.finance-weekly-trend-list {
+  padding-top: 0.25rem;
+}
+
+.finance-trend-row {
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(125, 125, 125, 0.04);
+  transition: background 0.2s ease;
+}
+
+.finance-trend-row.is-current-week {
+  background: rgba(16, 185, 129, 0.09);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.finance-trend-bar-bg {
+  background: rgba(125, 125, 125, 0.15);
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.finance-trend-bar-fill {
+  background: #0284c7;
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.finance-trend-bar-fill.fill-current {
+  background: linear-gradient(90deg, #0284c7 0%, #10b981 100%);
+}
+
+/* --- Cuadrícula de Top 10 Tratamientos --- */
+.finance-top-treatments-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.65rem;
+}
+
+.top-treatment-card {
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.top-treatment-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(2, 132, 199, 0.45) !important;
+}
+
+.btn-finance-action.is-active-view {
+  box-shadow: 0 0 0 2px var(--primary, #0284c7), 0 2px 10px rgba(2, 132, 199, 0.35);
+}
+
+/* --- Media Queries Responsivas para Móvil y Tablet --- */
+@media (max-width: 1024px) {
+  .finance-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .finance-two-col-grid {
+    grid-template-columns: 1fr;
+  }
+  .finance-top-treatments-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .finance-main-section {
+    padding: 0.75rem;
+  }
+  .finance-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .finance-kpi-main-val {
+    font-size: 1.35rem;
+  }
+  .finance-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .finance-toolbar {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .finance-select {
+    width: 100%;
+  }
+}
+
+/* --- Reglas de Impresión PDF --- */
+@media print {
+  .top-compact-header,
+  .quick-actions-bar,
+  .finance-toolbar button,
+  .finance-nav-tabs,
+  #btn-finance-back-calendar {
+    display: none !important;
+  }
+  .finance-main-section {
+    display: block !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .finance-kpi-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+  .finance-two-col-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+

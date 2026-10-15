@@ -247,6 +247,14 @@ class PermissionService {
       btnReports.style.display = this.canRead('modal-quick-reports') ? 'inline-flex' : 'none';
     }
 
+    // 4b. Botón Panel Financiero ('finance-main-section' / 'panel-financiero')
+    const btnFinance = $('#btn-quick-finance');
+    if (btnFinance) {
+      const hasSpecific = this.permissions['finance-main-section'] || this.permissions['panel-financiero'];
+      const canFinance = hasSpecific ? (this.canRead('finance-main-section') || this.canRead('panel-financiero')) : true;
+      btnFinance.style.display = canFinance ? 'inline-flex' : 'none';
+    }
+
     // 5. Botón de Configuración Administrativa ('modal-admin-config')
     const btnConfig = $('#btn-quick-config') || $('#btn-open-admin-config');
     if (btnConfig) {
