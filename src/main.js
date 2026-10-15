@@ -18,8 +18,13 @@ import './assets/styles/app.css';
 import { platformService } from './services/platformService.js';
 import { checkConnection } from './services/supabaseClient.js';
 import { permissionService } from './services/permissionService.js';
+import { notificationService } from './services/notificationService.js';
 import { env } from './config/env.js';
 import { $ } from './utils/dom.js';
+
+if (typeof window !== 'undefined') {
+  window.notificationService = notificationService;
+}
 
 // Componentes y Módulos
 import { renderAuthModal } from './modules/auth/authView.js';

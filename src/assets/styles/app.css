@@ -258,23 +258,52 @@ dialog::backdrop {
 }
 
 /* ==========================================
-   Toast / Notificaciones Flotantes
+   Toast / Notificaciones Flotantes (Top Layer)
    ========================================== */
-.toast-dock {
-  position: fixed;
-  bottom: max(1.5rem, env(safe-area-inset-bottom, 1.5rem));
-  right: 1.5rem;
-  z-index: 9999;
-  max-width: 380px;
-  width: calc(100vw - 3rem);
-  pointer-events: none;
+.toast-dock,
+#toast-container,
+#toast-container[popover],
+.toast-dock[popover] {
+  position: fixed !important;
+  inset: unset !important;
+  top: unset !important;
+  left: unset !important;
+  bottom: max(1.5rem, env(safe-area-inset-bottom, 1.5rem)) !important;
+  right: 1.5rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  max-width: 420px !important;
+  width: calc(100vw - 3rem) !important;
+  pointer-events: none !important;
+  overflow: visible !important;
+  z-index: 2147483647 !important;
 }
 
-.toast-dock .alert {
-  pointer-events: auto;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  border-radius: 0.75rem;
-  animation: slide-up 0.25s ease-out;
+#toast-container::backdrop,
+.toast-dock::backdrop {
+  display: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+.toast-dock .alert,
+#toast-container .alert {
+  pointer-events: auto !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  border-radius: 0.75rem !important;
+  animation: slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  backdrop-filter: blur(8px) !important;
+  font-size: 0.92rem !important;
+}
+
+html[data-theme="dark"] .toast-dock .alert,
+html[data-theme="dark"] #toast-container .alert {
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55), 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 @keyframes slide-up {
