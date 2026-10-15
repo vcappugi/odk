@@ -522,9 +522,166 @@ export function renderDashboardTab(metrics) {
 
           </div>
         </div>
-
       </div>
 
+      <!-- ===================================================================
+           E. SECCIÓN: REGISTRO DETALLADO DE COBROS (Con Dr., Totales e Impresión)
+           =================================================================== -->
+      ${renderCobrosTable(metrics, { title: '💳 Registro de Cobros del Periodo', isDashboard: true })}
+
+    </div>
+  `;
+}
+
+/**
+ * Componente Reutilizable: Tabla Detallada de Cobros con columna Dr., Totales en $ y Bs., y botón Imprimir
+ */
+export function renderCobrosTable(metrics, { title = '💳 Libro Diario de Cobros y Pagos', isDashboard = false } = {}) {
+  const { cobrosDetallados } = metrics;
+  const formatUSD = (val) => `$${Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatBs = (val) => `${Number(val || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs.`;
+
+  let totalUSD = 0;
+  let totalBs = 0;
+  cobrosDetallados.forEach(c => {
+    totalUSD += Number(c.monto_usd) || 0;
+    totalBs += Number(c.monto_bs) || 0;
+  });
+
+  const searchId = isDashboard ? 'finance-search-cobros-dash' : 'finance-search-cobros';
+
+  return `
+    <div class="box stack finance-card finance-cobros-card" data-surface="raised" data-border data-gap="sm">
+      <div class="cluster" data-justify="between" data-align="center">
+        <div>
+          <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700;">
+            ${title}
+          </h3>
+          <small style="opacity: 0.75; font-size: 0.75rem;">
+            Listado detallado con columna de Dr., montos en divisas y bolívares
+          </small>
+        </div>
+
+        <!-- Totales consolidados y botón Imprimir -->
+        <div class="cluster" data-gap="xs" data-align="center">
+          <span class="badge" data-paint="success" style="font-size: 0.75rem; font-weight: 700; padding: 4px 8px;" title="Total facturado en Dólares">
+            💵 Total $: <strong class="header-total-usd">${formatUSD(totalUSD)}</strong>
+          </span>
+          <span class="badge" data-paint="primary" style="font-size: 0.75rem; font-weight: 700; padding: 4px 8px;" title="Total facturado en Bolívares">
+            🇻🇪 Total Bs: <strong class="header-total-bs">${formatBs(totalBs)}</strong>
+          </span>
+          <button type="button" class="button btn-print-cobros" data-variant="outlined" data-size="sm" title="Imprimir este listado de cobros con columna Dr. y totales" style="height: 30px; font-weight: 700; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+            <span>🖨️</span>
+            <span>Imprimir Listado</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de búsqueda y contador dinámico -->
+      <div class="cluster" data-justify="between" data-align="center" style="background: rgba(125, 125, 125, 0.05); padding: 6px 10px; border-radius: 6px;">
+        <input 
+          type="search" 
+          id="${searchId}" 
+          class="input input-compact finance-search-cobros-input" 
+          placeholder="🔍 Buscar por Dr., paciente o referencia..." 
+          style="width: 280px; font-size: 0.78rem; height: 30px;"
+        />
+        <span class="badge" data-paint="neutral" style="font-size: 0.72rem; font-weight: 700;">
+          <span class="finance-cobros-count">${cobrosDetallados.length}</span> Transacciones Registradas
+        </span>
+      </div>
+
+      <div class="table-scroll-container" style="max-height: 480px; overflow-y: auto;">
+        <table class="table finance-table" style="width: 100%; font-size: 0.8rem;">
+          <thead>
+            <tr>
+              <th style="width: 11%;">Fecha</th>
+              <th style="width: 22%;">Paciente</th>
+              <th style="width: 18%;">Dr.</th>
+              <th style="width: 13%; text-align: right;">Monto ($ USD)</th>
+              <th style="width: 15%; text-align: right;">Monto (Bs.)</th>
+              <th style="width: 9%; text-align: right;">Tasa BCV</th>
+              <th style="width: 12%;">Método / Ref.</th>
+            </tr>
+          </thead>
+          <tbody class="finance-cobros-tbody">
+            ${cobrosDetallados.length === 0 ? `
+              <tr>
+                <td colspan="7" style="text-align: center; padding: 2rem; opacity: 0.7;">
+                  No hay cobros registrados en el periodo seleccionado.
+                </td>
+              </tr>
+            ` : cobrosDetallados.map(c => {
+                const docName = c.doctor_nombre ? (c.doctor_nombre.toLowerCase().startsWith('dr') ? c.doctor_nombre : 'Dr(a). ' + c.doctor_nombre) : 'Especialista';
+                return `
+                  <tr class="finance-cobro-row" data-usd="${c.monto_usd}" data-bs="${c.monto_bs}" data-search="${(c.paciente_nombre + ' ' + c.paciente_ci + ' ' + c.referencia + ' ' + c.doctor_nombre + ' ' + docName).toLowerCase()}">
+                    <td>
+                      <strong>${c.fecha_pago}</strong>
+                    </td>
+                    <td>
+                      <div class="stack" style="gap: 1px;">
+                        <strong style="color: var(--primary, #0284c7);">${c.paciente_nombre}</strong>
+                        <small style="opacity: 0.7; font-size: 0.70rem;">CI: ${c.paciente_ci}</small>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="cluster" data-gap="3xs" data-align="center">
+                        <span style="font-size: 0.85rem;">👨‍⚕️</span>
+                        <strong style="color: inherit;">${docName}</strong>
+                      </div>
+                    </td>
+                    <td style="text-align: right;">
+                      <strong style="color: #10b981; font-size: 0.88rem;">${formatUSD(c.monto_usd)}</strong>
+                    </td>
+                    <td style="text-align: right;">
+                      <strong style="color: #0284c7; font-size: 0.85rem;">${formatBs(c.monto_bs)}</strong>
+                    </td>
+                    <td style="text-align: right; opacity: 0.85;">
+                      ${Number(c.tasa_cambio).toFixed(2)}
+                    </td>
+                    <td>
+                      <span class="badge" data-paint="success" style="font-size: 0.68rem; font-weight: 600;">
+                        ${c.metodo_pago || c.metodo}
+                      </span>
+                      ${c.referencia && c.referencia !== 'Sin referencia registrada' ? `
+                        <small style="display: block; opacity: 0.75; font-size: 0.68rem; margin-top: 2px;">
+                          Ref: ${c.referencia}
+                        </small>
+                      ` : ''}
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+          </tbody>
+          <tfoot>
+            <tr class="finance-table-total-row" style="background: rgba(16, 185, 129, 0.08); font-weight: 700; border-top: 2px solid rgba(16, 185, 129, 0.35);">
+              <td colspan="3" style="padding: 0.75rem 0.6rem;">
+                <div class="cluster" data-gap="xs" data-align="center">
+                  <span style="font-size: 0.95rem;">📊</span>
+                  <strong style="font-size: 0.85rem; text-transform: uppercase;">
+                    TOTAL GENERAL (<span class="finance-cobros-count">${cobrosDetallados.length}</span> cobros):
+                  </strong>
+                </div>
+              </td>
+              <td style="text-align: right; padding: 0.75rem 0.6rem;">
+                <strong class="finance-total-usd" style="font-size: 0.95rem; color: #10b981;">
+                  ${formatUSD(totalUSD)}
+                </strong>
+              </td>
+              <td style="text-align: right; padding: 0.75rem 0.6rem;">
+                <strong class="finance-total-bs" style="font-size: 0.92rem; color: #0284c7;">
+                  ${formatBs(totalBs)}
+                </strong>
+              </td>
+              <td colspan="2" style="padding: 0.75rem 0.6rem; text-align: right;">
+                <button type="button" class="button btn-print-cobros" data-variant="ghost" data-size="xs" style="font-size: 0.72rem; font-weight: 700;">
+                  <span>🖨️ Imprimir Listado</span>
+                </button>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
   `;
 }
@@ -533,92 +690,7 @@ export function renderDashboardTab(metrics) {
  * Renderiza la Pestaña 2: Registro Detallado de Cobros
  */
 export function renderCobrosTab(metrics) {
-  const { cobrosDetallados } = metrics;
-  const formatUSD = (val) => `$${Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  const formatBs = (val) => `${Number(val || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs.`;
-
-  return `
-    <div class="box stack finance-card" data-surface="raised" data-border data-gap="sm">
-      <div class="cluster" data-justify="between" data-align="center">
-        <div>
-          <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700;">
-            💳 Libro Diario de Cobros y Pagos
-          </h3>
-          <small style="opacity: 0.75; font-size: 0.75rem;">
-            Lista detallada de pagos recibidos con tasa oficial BCV, método y referencia
-          </small>
-        </div>
-        <div class="cluster" data-gap="xs">
-          <input 
-            type="search" 
-            id="finance-search-cobros" 
-            class="input input-compact" 
-            placeholder="🔍 Buscar paciente o referencia..." 
-            style="width: 240px; font-size: 0.78rem; height: 30px;"
-          />
-          <span class="badge" data-paint="success" style="font-size: 0.72rem; font-weight: 700;">
-            ${cobrosDetallados.length} Transacciones
-          </span>
-        </div>
-      </div>
-
-      <div class="table-scroll-container" style="max-height: 480px; overflow-y: auto;">
-        <table class="table finance-table" style="width: 100%; font-size: 0.8rem;">
-          <thead>
-            <tr>
-              <th style="width: 12%;">Fecha</th>
-              <th style="width: 25%;">Paciente</th>
-              <th style="width: 18%;">Especialista</th>
-              <th style="width: 14%; text-align: right;">Monto ($ USD)</th>
-              <th style="width: 12%; text-align: right;">Tasa BCV</th>
-              <th style="width: 19%;">Método / Referencia</th>
-            </tr>
-          </thead>
-          <tbody id="finance-cobros-tbody">
-            ${cobrosDetallados.length === 0 ? `
-              <tr>
-                <td colspan="6" style="text-align: center; padding: 2rem; opacity: 0.7;">
-                  No hay cobros registrados en el periodo seleccionado.
-                </td>
-              </tr>
-            ` : cobrosDetallados.map(c => `
-              <tr class="finance-cobro-row" data-search="${(c.paciente_nombre + ' ' + c.paciente_ci + ' ' + c.referencia + ' ' + c.doctor_nombre).toLowerCase()}">
-                <td>
-                  <strong>${c.fecha_pago}</strong>
-                </td>
-                <td>
-                  <div class="stack" style="gap: 1px;">
-                    <strong style="color: var(--primary, #0284c7);">${c.paciente_nombre}</strong>
-                    <small style="opacity: 0.7; font-size: 0.70rem;">CI: ${c.paciente_ci}</small>
-                  </div>
-                </td>
-                <td>
-                  <span>${c.doctor_nombre}</span>
-                </td>
-                <td style="text-align: right;">
-                  <strong style="color: #10b981; font-size: 0.88rem;">${formatUSD(c.monto_usd)}</strong>
-                  <small style="display: block; font-size: 0.68rem; opacity: 0.75;">≈ ${formatBs(c.monto_bs)}</small>
-                </td>
-                <td style="text-align: right; opacity: 0.85;">
-                  ${Number(c.tasa_cambio).toFixed(2)} Bs/$
-                </td>
-                <td>
-                  <span class="badge" data-paint="success" style="font-size: 0.68rem; font-weight: 600;">
-                    ${c.metodo_pago || c.metodo}
-                  </span>
-                  ${c.referencia && c.referencia !== 'Sin referencia registrada' ? `
-                    <small style="display: block; opacity: 0.75; font-size: 0.68rem; margin-top: 2px;">
-                      Ref: ${c.referencia}
-                    </small>
-                  ` : ''}
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
+  return renderCobrosTable(metrics, { title: '💳 Libro Diario de Cobros y Pagos', isDashboard: false });
 }
 
 /**

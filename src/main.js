@@ -87,6 +87,19 @@ async function bootstrapApp() {
 
   // 13. Inicializar controlador del Panel Financiero (Dashboard e Indicadores)
   financeController.init();
+  window.financeController = financeController;
+
+  // Soporte para navegación directa por hash (#finance)
+  if (window.location.hash === '#finance') {
+    financeController.showFinancePanel();
+  }
+  window.addEventListener('hashchange', () => {
+    if (window.location.hash === '#finance') {
+      financeController.showFinancePanel();
+    } else if (financeController.isPanelOpen) {
+      financeController.showCalendar();
+    }
+  });
 
   console.log('✅ ODONTOKRIS inicializado con éxito.');
 }

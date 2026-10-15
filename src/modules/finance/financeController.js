@@ -82,22 +82,25 @@ export const financeController = {
       }
     });
 
-    // 6. Botón Imprimir / PDF
+    // 6. Botón Imprimir / PDF (Imprime el listado de cobros con Dr. y totales)
     document.addEventListener('click', (e) => {
-      if (e.target.closest('#btn-finance-print')) {
-        window.print();
+      if (e.target.closest('#btn-finance-print') || e.target.closest('.btn-print-cobros')) {
+        e.preventDefault();
+        this.printCobrosList();
       }
     });
 
-    // 7. Buscador dinámico en la tabla de cobros
+    // 7. Buscador dinámico en la tabla de cobros con recálculo dinámico de totales
     document.addEventListener('input', (e) => {
-      if (e.target.id === 'finance-search-cobros') {
+      if (e.target.classList.contains('finance-search-cobros-input') || e.target.id === 'finance-search-cobros' || e.target.id === 'finance-search-cobros-dash') {
         const query = e.target.value.toLowerCase().trim();
-        const rows = $$('.finance-cobro-row');
+        const card = e.target.closest('.finance-cobros-card');
+        const rows = card ? card.querySelectorAll('.finance-cobro-row') : $$('.finance-cobro-row');
         rows.forEach(row => {
           const text = row.dataset.search || '';
           row.style.display = text.includes(query) ? '' : 'none';
         });
+        this.updateVisibleCobrosTotals(card);
       }
     });
 
@@ -327,5 +330,331 @@ export const financeController = {
       console.error('[FinanceController] Error cargando métricas:', err);
       notificationService.error('Ocurrió un error al cargar las métricas financieras.');
     }
+  },
+
+  /**
+   * Recalcula en tiempo real los totales de cobros en pantalla según las filas visibles tras buscar
+   */
+  updateVisibleCobrosTotals(targetCard = null) {
+    const formatUSD = (val) => `$${Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const formatBs = (val) => `${Number(val || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs.`;
+
+    const cards = targetCard ? [targetCard] : $$('.finance-cobros-card');
+    cards.forEach(card => {
+      const rows = card.querySelectorAll('.finance-cobro-row');
+      let visibleUSD = 0;
+      let visibleBs = 0;
+      let visibleCount = 0;
+
+      rows.forEach(r => {
+        if (r.style.display !== 'none') {
+          visibleUSD += Number(r.dataset.usd) || 0;
+          visibleBs += Number(r.dataset.bs) || 0;
+          visibleCount++;
+        }
+      });
+
+      const countEl = card.querySelector('.finance-cobros-count');
+      if (countEl) countEl.textContent = visibleCount;
+
+      const usdEl = card.querySelector('.finance-total-usd');
+      if (usdEl) usdEl.textContent = formatUSD(visibleUSD);
+
+      const bsEl = card.querySelector('.finance-total-bs');
+      if (bsEl) bsEl.textContent = formatBs(visibleBs);
+
+      const headerUsdEl = card.querySelector('.header-total-usd');
+      if (headerUsdEl) headerUsdEl.textContent = formatUSD(visibleUSD);
+
+      const headerBsEl = card.querySelector('.header-total-bs');
+      if (headerBsEl) headerBsEl.textContent = formatBs(visibleBs);
+    });
+  },
+
+  /**
+   * Imprime mediante iframe silencioso sin alterar el layout principal
+   */
+  printHtmlDocument(htmlContent) {
+    let iframe = document.getElementById('finance-print-iframe');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'finance-print-iframe';
+      iframe.style.position = 'fixed';
+      iframe.style.top = '-9999px';
+      iframe.style.left = '-9999px';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = 'none';
+      document.body.appendChild(iframe);
+    }
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(htmlContent);
+    doc.close();
+
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (err) {
+        console.warn('[FinancePrint] Fallback al diálogo nativo de impresión:', err);
+        window.print();
+      }
+    }, 350);
+  },
+
+  /**
+   * Genera el informe imprimible del registro de cobros con columna de Dr. y totales en USD y Bs.
+   */
+  printCobrosList() {
+    if (!this.currentMetrics) {
+      notificationService.warning('No hay datos financieros cargados para imprimir.');
+      return;
+    }
+
+    const { cobrosDetallados, period, dateRange } = this.currentMetrics;
+    const activeSede = this.getLoggedInConsultorio();
+    const sedeNombre = activeSede?.nombre || 'Sede Principal';
+
+    let totalUSD = 0;
+    let totalBs = 0;
+    cobrosDetallados.forEach(c => {
+      totalUSD += Number(c.monto_usd) || 0;
+      totalBs += Number(c.monto_bs) || 0;
+    });
+
+    const formatUSD = (val) => `$${Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const formatBs = (val) => `${Number(val || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs.`;
+
+    const periodLabelMap = {
+      today: 'El día de hoy (Hoy)',
+      week: 'Esta Semana',
+      month: 'Este Mes',
+      quarter: 'Últimos 3 Meses',
+      year: 'Este Año (2026)',
+      all: 'Todo el Histórico'
+    };
+    const periodText = periodLabelMap[period] || period;
+    const nowFormatted = new Date().toLocaleString('es-VE', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const rowsHtml = cobrosDetallados.length === 0
+      ? `<tr><td colspan="7" style="text-align: center; padding: 25px; color: #64748b;">No hay cobros registrados en el periodo seleccionado.</td></tr>`
+      : cobrosDetallados.map((c, i) => {
+          const docName = c.doctor_nombre ? (c.doctor_nombre.toLowerCase().startsWith('dr') ? c.doctor_nombre : 'Dr(a). ' + c.doctor_nombre) : 'Especialista';
+          return `
+            <tr>
+              <td style="text-align: center; color: #64748b; font-weight: 600;">${i + 1}</td>
+              <td style="font-weight: 600;">${c.fecha_pago}</td>
+              <td>
+                <strong>${c.paciente_nombre}</strong>
+                <small style="display: block; color: #64748b; font-size: 9px;">CI: ${c.paciente_ci}</small>
+              </td>
+              <td><strong>${docName}</strong></td>
+              <td>
+                <span>${c.metodo_pago || c.metodo}</span>
+                ${c.referencia && c.referencia !== 'Sin referencia registrada' ? `<small style="display: block; color: #64748b; font-size: 8.5px;">Ref: ${c.referencia}</small>` : ''}
+              </td>
+              <td style="text-align: right; color: #059669; font-weight: 700;">${formatUSD(c.monto_usd)}</td>
+              <td style="text-align: right; color: #0284c7; font-weight: 700;">${formatBs(c.monto_bs)}</td>
+            </tr>
+          `;
+        }).join('');
+
+    const printHtml = `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="utf-8">
+        <title>Reporte de Registro de Cobros · ODONTOKRIS · ${sedeNombre}</title>
+        <style>
+          @page {
+            size: letter landscape;
+            margin: 10mm 12mm;
+          }
+          * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+          }
+          body {
+            color: #1e293b;
+            background: #ffffff;
+            margin: 0;
+            padding: 0;
+            font-size: 10.5px;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #0284c7;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+          }
+          .logo-title h1 {
+            margin: 0;
+            font-size: 18px;
+            color: #0284c7;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+          }
+          .logo-title p {
+            margin: 3px 0 0;
+            font-size: 11px;
+            color: #64748b;
+          }
+          .report-meta {
+            text-align: right;
+            font-size: 10px;
+            color: #334155;
+            line-height: 1.45;
+          }
+          .summary-strip {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+          }
+          .summary-card {
+            flex: 1;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 6px 12px;
+            background: #f8fafc;
+          }
+          .summary-card.highlight-usd {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+          }
+          .summary-card.highlight-bs {
+            background: #f0f9ff;
+            border-color: #bae6fd;
+          }
+          .summary-card .label {
+            font-size: 8.5px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #64748b;
+          }
+          .summary-card .value {
+            font-size: 15px;
+            font-weight: 800;
+            margin-top: 2px;
+          }
+          .summary-card.highlight-usd .value { color: #059669; }
+          .summary-card.highlight-bs .value { color: #0284c7; }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+          }
+          th, td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 10px;
+          }
+          th {
+            background: #f1f5f9;
+            color: #334155;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 9.5px;
+          }
+          tr:nth-child(even) td {
+            background: #f8fafc;
+          }
+          tfoot td {
+            background: #e2e8f0 !important;
+            font-weight: 800;
+            border-top: 2px solid #0f172a;
+            border-bottom: 2px solid #0f172a;
+          }
+          .footer-note {
+            margin-top: 10px;
+            font-size: 8.5px;
+            color: #94a3b8;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 6px;
+          }
+          @media print {
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <header class="header">
+          <div class="logo-title">
+            <h1>ODONTOKRIS · Sistema Odontológico</h1>
+            <p>Registro Detallado de Cobros y Liquidación</p>
+          </div>
+          <div class="report-meta">
+            <div><strong>Sede:</strong> ${sedeNombre}</div>
+            <div><strong>Periodo:</strong> ${periodText} (${dateRange.start} al ${dateRange.end})</div>
+            <div><strong>Fecha Emisión:</strong> ${nowFormatted}</div>
+          </div>
+        </header>
+
+        <div class="summary-strip">
+          <div class="summary-card">
+            <div class="label">Total Transacciones</div>
+            <div class="value">${cobrosDetallados.length} cobros</div>
+          </div>
+          <div class="summary-card highlight-usd">
+            <div class="label">Total Facturado en Dólares ($)</div>
+            <div class="value">${formatUSD(totalUSD)}</div>
+          </div>
+          <div class="summary-card highlight-bs">
+            <div class="label">Total Facturado en Bolívares (Bs.)</div>
+            <div class="value">${formatBs(totalBs)}</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 4%; text-align: center;">#</th>
+              <th style="width: 10%;">Fecha</th>
+              <th style="width: 23%;">Paciente</th>
+              <th style="width: 20%;">Dr. (Especialista)</th>
+              <th style="width: 17%;">Método / Ref.</th>
+              <th style="width: 13%; text-align: right;">Total ($ USD)</th>
+              <th style="width: 13%; text-align: right;">Total (Bs.)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="5" style="text-align: right; text-transform: uppercase;">
+                TOTAL GENERAL (${cobrosDetallados.length} COBROS):
+              </td>
+              <td style="text-align: right; color: #059669; font-size: 11px;">
+                ${formatUSD(totalUSD)}
+              </td>
+              <td style="text-align: right; color: #0284c7; font-size: 11px;">
+                ${formatBs(totalBs)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div class="footer-note">
+          Documento generado automáticamente por ODONTOKRIS · Sistema de Gestión Odontológica · Confidencial
+        </div>
+      </body>
+      </html>
+    `;
+
+    this.printHtmlDocument(printHtml);
   }
 };
