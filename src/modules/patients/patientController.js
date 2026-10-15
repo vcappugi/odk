@@ -8,7 +8,7 @@ import { patientModel } from './patientModel.js';
 import { consultorioModel } from '../consultorio/consultorioModel.js';
 import { authModel } from '../auth/authModel.js';
 import { googleDriveService, GOOGLE_DRIVE_CONFIG } from '../../services/googleDriveService.js';
-import { renderPatientTableRow, renderEmptyPatientsState } from './patientView.js';
+import { renderPatientTableRow, renderEmptyPatientsState, renderPatientCard, renderEmptyPatientsCards } from './patientView.js';
 import { notificationService } from '../../services/notificationService.js';
 import { permissionService } from '../../services/permissionService.js';
 import { historialController } from '../historial/historialController.js';
@@ -24,6 +24,7 @@ export const patientController = {
   pendingDeleteName: '',
   selectedPhotoFile: null,
   isUploadingPhoto: false,
+  currentViewMode: 'cards', // 'cards' (predefinida) | 'list'
 
   init() {
     this.attachEventListeners();
@@ -54,6 +55,13 @@ export const patientController = {
     document.addEventListener('click', (e) => {
       if (e.target.closest('#btn-refresh-patients')) {
         this.loadPatients();
+      }
+    });
+
+    // 2b. Botón alternar vista entre Tarjetas y Listado
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-toggle-patients-view')) {
+        this.toggleViewMode();
       }
     });
 
@@ -313,6 +321,9 @@ export const patientController = {
       notificationService.warning('Tu rol no tiene permiso para consultar el módulo de pacientes.');
       return;
     }
+    // Asegurar que la vista predefinida al abrir sea siempre Tarjetas
+    this.currentViewMode = 'cards';
+    this.updateViewModeUI();
     this.openDialog('modal-manage-patients');
     await this.loadPatients();
 
@@ -353,9 +364,51 @@ export const patientController = {
   },
 
   /**
-   * Consulta Supabase y actualiza la tabla
+   * Alterna entre vista de tarjetas y vista de listado
+   */
+  toggleViewMode() {
+    this.currentViewMode = this.currentViewMode === 'cards' ? 'list' : 'cards';
+    this.updateViewModeUI();
+  },
+
+  /**
+   * Actualiza la visibilidad de contenedores y el texto del botón de alternar
+   */
+  updateViewModeUI() {
+    const cardsWrapper = $('#patients-cards-wrapper');
+    const tableWrapper = $('#patients-table-wrapper');
+    const btnToggle = $('#btn-toggle-patients-view');
+    const iconSpan = $('#btn-toggle-view-icon');
+    const textSpan = $('#btn-toggle-view-text');
+
+    if (this.currentViewMode === 'cards') {
+      if (cardsWrapper) cardsWrapper.style.display = 'block';
+      if (tableWrapper) tableWrapper.style.display = 'none';
+      if (iconSpan) iconSpan.textContent = '📋';
+      if (textSpan) textSpan.textContent = 'Vista Listado';
+      if (btnToggle) {
+        btnToggle.title = 'Cambiar a vista listado';
+        btnToggle.setAttribute('aria-label', 'Cambiar a vista listado');
+        btnToggle.classList.remove('is-active-list');
+      }
+    } else {
+      if (cardsWrapper) cardsWrapper.style.display = 'none';
+      if (tableWrapper) tableWrapper.style.display = 'block';
+      if (iconSpan) iconSpan.textContent = '🗂️';
+      if (textSpan) textSpan.textContent = 'Vista Tarjetas';
+      if (btnToggle) {
+        btnToggle.title = 'Cambiar a vista tarjetas';
+        btnToggle.setAttribute('aria-label', 'Cambiar a vista tarjetas');
+        btnToggle.classList.add('is-active-list');
+      }
+    }
+  },
+
+  /**
+   * Consulta Supabase y actualiza tanto tarjetas como tabla
    */
   async loadPatients() {
+    const cardsGrid = $('#patients-cards-grid');
     const tbody = $('#patients-table-body');
     const countLabel = $('#patients-count-label');
     const activeConsultorio = consultorioModel.getActiveConsultorio() 
@@ -364,11 +417,20 @@ export const patientController = {
     const consultorioId = activeConsultorio?.id ? Number(activeConsultorio.id) : null;
 
     this.isLoading = true;
+    if (cardsGrid) {
+      cardsGrid.innerHTML = `
+        <div class="patients-loading-box" style="grid-column: 1 / -1; text-align: center; padding: 2.5rem 1rem;">
+          <span class="spinner" data-size="sm"></span>
+          <span style="margin-left: 0.5rem;">Cargando pacientes desde Supabase...</span>
+        </div>
+      `;
+    }
     if (tbody) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="5" class="table-loading-cell" style="text-align: center; padding: 2rem;">
-            <span>🔄 Cargando pacientes desde Supabase...</span>
+          <td colspan="3" class="table-loading-cell" style="text-align: center; padding: 2rem;">
+            <span class="spinner" data-size="sm"></span>
+            <span style="margin-left: 0.5rem;">Cargando pacientes desde Supabase...</span>
           </td>
         </tr>
       `;
@@ -376,7 +438,7 @@ export const patientController = {
 
     try {
       this.patientsList = await patientModel.getAll(consultorioId);
-      this.renderTable(this.patientsList);
+      this.renderPatients(this.patientsList);
 
       if (countLabel) {
         const sedeText = activeConsultorio ? ` · 🏢 Sede: ${activeConsultorio.nombre}` : '';
@@ -385,6 +447,9 @@ export const patientController = {
     } catch (err) {
       console.error('[PatientController] Error al cargar pacientes:', err);
       notificationService.error('Error al conectar con la lista de pacientes.');
+      if (cardsGrid) {
+        cardsGrid.innerHTML = renderEmptyPatientsCards(false);
+      }
       if (tbody) {
         tbody.innerHTML = renderEmptyPatientsState(false);
       }
@@ -397,7 +462,38 @@ export const patientController = {
   },
 
   /**
-   * Renderiza el cuerpo de la tabla
+   * Renderiza las dos vistas: tarjetas y tabla
+   */
+  renderPatients(list, isSearch = false) {
+    this.renderCards(list, isSearch);
+    this.renderTable(list, isSearch);
+  },
+
+  /**
+   * Renderiza la vista de tarjetas (VISTA PREDEFINIDA)
+   */
+  renderCards(list, isSearch = false) {
+    const container = $('#patients-cards-grid');
+    if (!container) return;
+
+    if (!list || list.length === 0) {
+      container.innerHTML = renderEmptyPatientsCards(isSearch);
+      return;
+    }
+
+    container.innerHTML = list.map(p => renderPatientCard(p)).join('');
+
+    // Permisos de escritura: si no tiene permiso, ocultar botones de eliminar
+    const canWrite = permissionService.canWrite('modal-patient-form');
+    if (!canWrite) {
+      container.querySelectorAll('.btn-delete-patient').forEach(btn => {
+        btn.style.display = 'none';
+      });
+    }
+  },
+
+  /**
+   * Renderiza el cuerpo de la tabla (VISTA LISTADO)
    */
   renderTable(list, isSearch = false) {
     const tbody = $('#patients-table-body');
@@ -424,7 +520,7 @@ export const patientController = {
    */
   filterPatients(query) {
     if (!query) {
-      this.renderTable(this.patientsList, false);
+      this.renderPatients(this.patientsList, false);
       return;
     }
 
@@ -443,7 +539,7 @@ export const patientController = {
       );
     });
 
-    this.renderTable(filtered, true);
+    this.renderPatients(filtered, true);
   },
 
   /**

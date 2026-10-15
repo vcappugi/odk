@@ -4446,5 +4446,252 @@ html[data-theme="dark"] .badge-status-no-asistio {
   color: #ffffff !important;
 }
 
+/* ==========================================================================
+   Gestión de Pacientes: Vistas de Tarjetas (Predefinida) y Listado
+   ========================================================================== */
+#modal-manage-patients {
+  max-width: 1040px !important;
+  width: 95vw !important;
+  max-height: 94vh !important;
+  border-radius: 1rem !important;
+}
+
+#modal-manage-patients .modal-box {
+  max-height: 92vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 1.25rem 1.4rem !important;
+}
+
+.btn-toggle-patients-view {
+  font-weight: 600 !important;
+  border-color: rgba(14, 165, 233, 0.45) !important;
+  color: var(--primary, #0ea5e9) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.btn-toggle-patients-view:hover {
+  background: rgba(14, 165, 233, 0.12) !important;
+  border-color: var(--primary, #0ea5e9) !important;
+  transform: translateY(-1px);
+}
+
+.btn-toggle-patients-view.is-active-list {
+  background: rgba(14, 165, 233, 0.15) !important;
+  border-color: var(--primary, #0ea5e9) !important;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.25) !important;
+}
+
+.patients-cards-wrapper,
+.patients-table-wrapper {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 340px;
+  max-height: 62vh;
+  padding: 0.85rem;
+  border-radius: 0.75rem;
+}
+
+.patients-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0.95rem;
+  align-items: stretch;
+}
+
+.patient-card {
+  position: relative;
+  border-radius: 0.75rem;
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--surface-raised, #ffffff);
+  border: 1px solid rgba(125, 125, 125, 0.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.2s ease;
+}
+
+.patient-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: rgba(14, 165, 233, 0.45);
+}
+
+html[data-theme="dark"] .patient-card {
+  background: rgba(22, 33, 56, 0.75);
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+html[data-theme="dark"] .patient-card:hover {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+.patient-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(125, 125, 125, 0.12);
+}
+
+.patient-card-avatar-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(14, 165, 233, 0.1);
+  border: 2px solid rgba(14, 165, 233, 0.35);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.patient-card-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.patient-avatar-placeholder-mini {
+  font-size: 1.5rem;
+  user-select: none;
+}
+
+.patient-card-name {
+  margin: 0;
+  font-size: 0.96rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-heading, inherit);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.patient-ci-badge {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  padding: 0.12rem 0.45rem !important;
+  border-radius: 4px !important;
+}
+
+.patient-card-details {
+  padding: 0.55rem 0;
+  font-size: 0.81rem;
+  line-height: 1.45;
+  opacity: 0.9;
+  flex: 1 1 auto;
+}
+
+.patient-card-info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--text-muted, inherit);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.patient-card-info-item .info-icon {
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.patient-card-info-item .info-val {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.patient-card-actions {
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(125, 125, 125, 0.12);
+  margin-top: auto;
+}
+
+@media (max-width: 640px) {
+  .patients-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.patients-table th,
+.patients-table td {
+  vertical-align: middle !important;
+}
+
+.patients-table .patient-actions-cell {
+  text-align: center !important;
+  white-space: nowrap !important;
+  width: 200px !important;
+}
+
+.patients-table .patient-actions-group {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+}
+
+.patients-table .patient-actions-group .button {
+  padding: 4px 7px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  border-radius: 6px !important;
+  opacity: 1 !important;
+  font-size: 1.05rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.15s ease !important;
+  background: rgba(125, 125, 125, 0.08) !important;
+  border: 1px solid rgba(125, 125, 125, 0.18) !important;
+  cursor: pointer !important;
+}
+
+.patients-table .patient-actions-group .button:hover {
+  background: rgba(125, 125, 125, 0.22) !important;
+  transform: translateY(-1px);
+}
+
+.patients-table .btn-edit-patient {
+  color: #d97706 !important;
+}
+
+.patients-table .btn-delete-patient {
+  color: #ef4444 !important;
+}
+
+.patients-table .btn-patient-row-odontograma {
+  color: #0284c7 !important;
+}
+
+.patients-table .btn-patient-row-print {
+  color: #6366f1 !important;
+}
+
+.patient-card-actions .button {
+  opacity: 1 !important;
+  transition: all 0.15s ease !important;
+}
+
+.patient-card-actions .button:hover {
+  transform: translateY(-1px);
+}
+
+
+
 
 

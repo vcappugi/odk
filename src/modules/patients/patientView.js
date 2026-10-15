@@ -36,6 +36,10 @@ export function renderPatientManagementModals() {
           </div>
 
           <div class="cluster" data-gap="xs">
+            <button type="button" id="btn-toggle-patients-view" class="button btn-toggle-patients-view" data-variant="outlined" data-size="sm" title="Cambiar a vista listado">
+              <span id="btn-toggle-view-icon">📋</span>
+              <span id="btn-toggle-view-text">Vista Listado</span>
+            </button>
             <button type="button" id="btn-quick-open-drive" class="button" data-variant="ghost" data-size="sm" title="Abrir carpeta de fotos en Google Drive">
               <span>📁 Drive</span>
             </button>
@@ -51,23 +55,30 @@ export function renderPatientManagementModals() {
           </div>
         </div>
 
-        <!-- Contenedor con la Tabla de Pacientes Registrados -->
-        <div class="patients-table-wrapper box" data-surface="sunken" data-border>
+        <!-- Vista 1: Tarjetas de Pacientes (VISTA PREDEFINIDA) -->
+        <div id="patients-cards-wrapper" class="patients-cards-wrapper box" data-surface="sunken" data-border>
+          <div id="patients-cards-grid" class="patients-cards-grid">
+            <div class="patients-loading-box" style="grid-column: 1 / -1; text-align: center; padding: 2.5rem 1rem;">
+              <span class="spinner" data-size="sm"></span>
+              <span style="margin-left: 0.5rem;">Cargando pacientes desde Supabase...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vista 2: Tabla de Pacientes (VISTA LISTADO) -->
+        <div id="patients-table-wrapper" class="patients-table-wrapper box" data-surface="sunken" data-border style="display: none;">
           <div class="table-scroll-container">
             <table class="table patients-table">
               <thead>
                 <tr>
-                  <th style="width: 32%;">Paciente / Foto</th>
-                  <th style="width: 18%;">Cédula / CI</th>
-                  <th style="width: 18%;">Teléfono</th>
-                  <th style="width: 18%;">Consultorio</th>
-                  <th style="width: 14%; text-align: center;">Acciones</th>
+                  <th style="width: 44%;">Paciente / Nombre</th>
+                  <th style="width: 22%;">Cédula / CI</th>
+                  <th style="width: 34%; text-align: center;">Acciones</th>
                 </tr>
               </thead>
               <tbody id="patients-table-body">
-                <!-- Se inyecta dinámicamente por patientController -->
                 <tr>
-                  <td colspan="5" class="table-loading-cell">
+                  <td colspan="3" class="table-loading-cell">
                     <span class="spinner" data-size="sm"></span>
                     <span>Cargando listado de pacientes desde Supabase...</span>
                   </td>
@@ -422,17 +433,159 @@ export function renderPatientManagementModals() {
 }
 
 /**
- * Genera el HTML de una fila de paciente en la tabla
+ * Genera el HTML de una tarjeta de paciente (VISTA PREDEFINIDA)
  */
-export function renderPatientTableRow(p) {
+export function renderPatientCard(p) {
   const safeName = p.nombre || 'Sin nombre';
   const safeCi = p.ci || '—';
-  const safePhone = p.telefono || '—';
+  const safePhone = p.telefono || '';
   const safeMail = p.mail || '';
   const safeAddress = p.direccion || '';
   const safeSex = p.sexo || '';
   const safeBirthdate = p.fecha_nacimiento || '';
-  const consultorioLabel = p.consultorio_id ? `Consultorio #${p.consultorio_id}` : 'General';
+  const consultorioLabel = p.consultorio_id ? `Consultorio #${p.consultorio_id}` : '';
+
+  // Formatear URL de foto a través de googleDriveService
+  const formattedPhotoUrl = p.foto ? googleDriveService.formatDriveImageUrl(p.foto) : '';
+
+  // Calcular edad si hay fecha de nacimiento
+  let ageBadge = '';
+  if (safeBirthdate) {
+    try {
+      const birthYear = new Date(safeBirthdate).getFullYear();
+      const currentYear = new Date().getFullYear();
+      const age = currentYear - birthYear;
+      if (!isNaN(age) && age > 0 && age < 130) {
+        ageBadge = `<span class="badge" data-paint="neutral" style="font-size: 0.7rem; padding: 0.1rem 0.35rem;">${age} años</span>`;
+      }
+    } catch {
+      // Ignorar error de parsing
+    }
+  }
+
+  return `
+    <div class="patient-card box stack" data-surface="raised" data-border data-id="${p.id}">
+      
+      <!-- Cabecera de la tarjeta: Avatar + Nombre + Cédula -->
+      <div class="patient-card-header cluster" data-gap="sm" data-align="center">
+        <div class="patient-card-avatar-box">
+          ${formattedPhotoUrl ? `
+            <img 
+              src="${formattedPhotoUrl}" 
+              alt="${safeName}" 
+              class="patient-card-avatar-img"
+              loading="lazy"
+              referrerpolicy="no-referrer"
+              onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='inline-flex';"
+            />
+            <span class="patient-avatar-placeholder-mini" style="display: none;">👤</span>
+          ` : `
+            <span class="patient-avatar-placeholder-mini">👤</span>
+          `}
+        </div>
+
+        <div class="patient-card-identity" style="min-width: 0; flex: 1;">
+          <h4 class="patient-card-name" title="${safeName}">${safeName}</h4>
+          <div class="cluster" data-gap="2xs" data-align="center" style="margin-top: 2px;">
+            <span class="badge patient-ci-badge" data-paint="primary" style="font-size: 0.72rem; font-weight: 700;">🪪 ${safeCi}</span>
+            ${ageBadge}
+            ${safeSex ? `<span class="badge badge-sex-tag" data-paint="neutral" title="Sexo: ${safeSex}">${safeSex.charAt(0).toUpperCase()}</span>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <!-- Datos de contacto y consultorio -->
+      <div class="patient-card-details stack" data-gap="2xs">
+        ${safePhone ? `<div class="patient-card-info-item"><span class="info-icon">📞</span> <span class="info-val">${safePhone}</span></div>` : ''}
+        ${safeMail ? `<div class="patient-card-info-item"><span class="info-icon">✉️</span> <span class="info-val truncate-text" title="${safeMail}">${safeMail}</span></div>` : ''}
+        ${safeAddress ? `<div class="patient-card-info-item"><span class="info-icon">📍</span> <span class="info-val truncate-text" title="${safeAddress}">${safeAddress}</span></div>` : ''}
+        ${consultorioLabel ? `<div class="patient-card-info-item" style="opacity: 0.8; font-size: 0.74rem;"><span class="info-icon">🏥</span> <span class="info-val">${consultorioLabel}</span></div>` : ''}
+      </div>
+
+      <!-- Acciones de la tarjeta: Modificar, Eliminar, Ver Odontograma e Imprimir Ficha -->
+      <div class="patient-card-actions cluster" data-gap="2xs" data-justify="between" data-align="center">
+        <div class="cluster" data-gap="2xs">
+          <button 
+            type="button" 
+            class="button btn-edit-patient" 
+            data-id="${p.id}" 
+            data-variant="ghost" 
+            data-size="sm" 
+            title="Modificar paciente"
+            aria-label="Modificar ${safeName}">
+            ✏️
+          </button>
+          <button 
+            type="button" 
+            class="button btn-delete-patient" 
+            data-id="${p.id}" 
+            data-name="${safeName}" 
+            data-variant="ghost" 
+            data-size="sm" 
+            title="Eliminar paciente"
+            aria-label="Eliminar ${safeName}">
+            🗑️
+          </button>
+        </div>
+
+        <div class="cluster" data-gap="2xs">
+          <button 
+            type="button" 
+            class="button btn-patient-row-odontograma" 
+            data-id="${p.id}" 
+            data-name="${safeName}" 
+            data-variant="outlined" 
+            data-size="sm" 
+            title="Ver odontograma de ${safeName}"
+            aria-label="Ver odontograma de ${safeName}"
+            style="border-color: rgba(14, 165, 233, 0.45); color: #0ea5e9; font-weight: 600;">
+            🦷 Odontograma
+          </button>
+          <button 
+            type="button" 
+            class="button btn-patient-row-print" 
+            data-id="${p.id}" 
+            data-name="${safeName}" 
+            data-variant="outlined" 
+            data-size="sm" 
+            title="Imprimir ficha clínica en PDF de ${safeName}"
+            aria-label="Imprimir ficha clínica en PDF de ${safeName}"
+            style="border-color: rgba(99, 102, 241, 0.45); color: #6366f1; font-weight: 600;">
+            🖨️ Ficha
+          </button>
+        </div>
+      </div>
+
+    </div>
+  `;
+}
+
+/**
+ * Genera el estado vacío para la vista en tarjetas
+ */
+export function renderEmptyPatientsCards(isSearch = false) {
+  return `
+    <div class="patients-cards-empty box stack" data-surface="raised" data-border data-gap="xs" data-align="center" style="grid-column: 1 / -1; padding: 3rem 1.5rem; text-align: center;">
+      <span style="font-size: 2.5rem;">🔍</span>
+      <strong style="font-size: 1.1rem;">
+        ${isSearch ? 'No se encontraron pacientes con esa búsqueda' : 'No hay pacientes registrados aún'}
+      </strong>
+      <p style="margin: 0; opacity: 0.7; font-size: 0.88rem;">
+        ${isSearch ? 'Intenta con otro término o limpia el buscador.' : 'Comienza registrando tu primer paciente con el botón "+ Nuevo Paciente".'}
+      </p>
+    </div>
+  `;
+}
+
+/**
+ * Genera el HTML de una fila de paciente en la tabla (VISTA LISTADO)
+ * Contiene únicamente: Nombre, Cédula y los iconos de Modificar, Eliminar, Ver Odontograma e Imprimir Ficha.
+ */
+export function renderPatientTableRow(p) {
+  const safeName = p.nombre || 'Sin nombre';
+  const safeCi = p.ci || '—';
+  const safeSex = p.sexo || '';
+  const safeBirthdate = p.fecha_nacimiento || '';
 
   // Formatear URL de foto a través de googleDriveService
   const formattedPhotoUrl = p.foto ? googleDriveService.formatDriveImageUrl(p.foto) : '';
@@ -480,42 +633,39 @@ export function renderPatientTableRow(p) {
               ${ageBadge}
               ${safeSex ? `<span class="badge badge-sex-tag" data-paint="neutral" title="Sexo: ${safeSex}">${safeSex.charAt(0).toUpperCase()}</span>` : ''}
             </div>
-            ${safeAddress ? `<small class="patient-row-addr">📍 ${safeAddress}</small>` : ''}
           </div>
 
         </div>
       </td>
 
       <td class="patient-ci-cell">
-        <span class="badge" data-paint="neutral">${safeCi}</span>
+        <span class="badge" data-paint="neutral" style="font-weight: 600;">${safeCi}</span>
       </td>
 
-      <td class="patient-phone-cell">
-        <div class="stack" data-gap="2xs">
-          <span class="patient-phone-text">📞 ${safePhone}</span>
-          ${safeMail ? `<small style="opacity: 0.7; font-size: 0.74rem;">✉️ ${safeMail}</small>` : ''}
-        </div>
-      </td>
-
-      <td class="patient-consultorio-cell">
-        <span class="badge" data-paint="primary" style="font-size: 0.75rem;">
-          🏥 ${consultorioLabel}
-        </span>
-      </td>
-
-      <td class="patient-actions-cell" style="text-align: center;">
-        <div class="cluster" data-gap="2xs" data-justify="center">
+      <td class="patient-actions-cell" style="text-align: center; white-space: nowrap; width: 34%;">
+        <div class="patient-actions-group" style="display: inline-flex !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: center !important; justify-content: center !important; gap: 6px !important;">
           <button 
             type="button" 
-            class="button btn-patient-row-historial" 
+            class="button btn-edit-patient" 
+            data-id="${p.id}" 
+            data-variant="ghost" 
+            data-size="sm" 
+            title="Modificar paciente"
+            aria-label="Modificar ${safeName}"
+            style="color: #d97706; font-size: 1.1rem; padding: 4px 6px;">
+            ✏️
+          </button>
+          <button 
+            type="button" 
+            class="button btn-delete-patient" 
             data-id="${p.id}" 
             data-name="${safeName}" 
             data-variant="ghost" 
             data-size="sm" 
-            title="Ver historial médico de ${safeName}"
-            aria-label="Ver historial médico de ${safeName}"
-            style="color: var(--primary, #0ea5e9);">
-            📋
+            title="Eliminar paciente"
+            aria-label="Eliminar ${safeName}"
+            style="color: #ef4444; font-size: 1.1rem; padding: 4px 6px;">
+            🗑️
           </button>
           <button 
             type="button" 
@@ -526,7 +676,7 @@ export function renderPatientTableRow(p) {
             data-size="sm" 
             title="Ver odontograma de ${safeName}"
             aria-label="Ver odontograma de ${safeName}"
-            style="color: #0ea5e9;">
+            style="color: #0ea5e9; font-size: 1.1rem; padding: 4px 6px;">
             🦷
           </button>
           <button 
@@ -538,29 +688,8 @@ export function renderPatientTableRow(p) {
             data-size="sm" 
             title="Imprimir ficha clínica en PDF de ${safeName}"
             aria-label="Imprimir ficha clínica en PDF de ${safeName}"
-            style="color: #6366f1;">
+            style="color: #6366f1; font-size: 1.1rem; padding: 4px 6px;">
             🖨️
-          </button>
-          <button 
-            type="button" 
-            class="button btn-edit-patient" 
-            data-id="${p.id}" 
-            data-variant="ghost" 
-            data-size="sm" 
-            title="Modificar paciente"
-            aria-label="Modificar ${safeName}">
-            ✏️
-          </button>
-          <button 
-            type="button" 
-            class="button btn-delete-patient" 
-            data-id="${p.id}" 
-            data-name="${safeName}" 
-            data-variant="ghost" 
-            data-size="sm" 
-            title="Eliminar paciente"
-            aria-label="Eliminar ${safeName}">
-            🗑️
           </button>
         </div>
       </td>
@@ -569,12 +698,12 @@ export function renderPatientTableRow(p) {
 }
 
 /**
- * Genera el estado vacío cuando no hay pacientes
+ * Genera el estado vacío cuando no hay pacientes en la tabla (3 columnas)
  */
 export function renderEmptyPatientsState(isSearch = false) {
   return `
     <tr>
-      <td colspan="5" class="table-empty-cell">
+      <td colspan="3" class="table-empty-cell">
         <div class="stack" data-gap="xs" data-align="center" style="padding: 2.5rem 1rem; text-align: center;">
           <span style="font-size: 2.2rem;">🔍</span>
           <strong style="font-size: 1.05rem;">
