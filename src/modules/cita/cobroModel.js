@@ -75,6 +75,7 @@ export const cobroModel = {
       monto_cobrado: Number(cobroData.monto_cobrado),
       tasa_cambio: Number(cobroData.tasa_cambio),
       fecha_pago: cobroData.fecha_pago,
+      metodo_pago: cobroData.metodo_pago ? String(cobroData.metodo_pago).trim() : 'Efectivo Divisas',
       referencia: cobroData.referencia ? String(cobroData.referencia).trim() : null,
       confirmado: cobroData.confirmado !== undefined ? Boolean(cobroData.confirmado) : true
     };
@@ -107,6 +108,7 @@ export const cobroModel = {
     if (cobroData.monto_cobrado !== undefined) payload.monto_cobrado = Number(cobroData.monto_cobrado);
     if (cobroData.tasa_cambio !== undefined) payload.tasa_cambio = Number(cobroData.tasa_cambio);
     if (cobroData.fecha_pago !== undefined) payload.fecha_pago = cobroData.fecha_pago;
+    if (cobroData.metodo_pago !== undefined) payload.metodo_pago = cobroData.metodo_pago ? String(cobroData.metodo_pago).trim() : 'Efectivo Divisas';
     if (cobroData.referencia !== undefined) payload.referencia = cobroData.referencia ? String(cobroData.referencia).trim() : null;
     if (cobroData.confirmado !== undefined) payload.confirmado = Boolean(cobroData.confirmado);
 

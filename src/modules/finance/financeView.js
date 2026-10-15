@@ -421,13 +421,21 @@ export function renderDashboardTab(metrics) {
             </div>
           ` : `
             <div class="stack" data-gap="xs">
-              ${metodosPago.map(m => `
+              ${metodosPago.map(m => {
+                let icon = '📝';
+                if (m.method === 'Punto de Venta') icon = '💳';
+                else if (m.method === 'Efectivo Divisas') icon = '💵';
+                else if (m.method === 'Efectivo Bs') icon = '🇻🇪';
+                else if (m.method === 'Pago Movil') icon = '📱';
+                else if (m.method === 'Binance') icon = '🟡';
+
+                return `
                 <div class="payment-method-row box" data-surface="sunken" data-border style="padding: 0.45rem 0.65rem; border-radius: 6px;">
                   <div class="cluster" data-justify="between" data-align="center" style="font-size: 0.78rem;">
                     <div class="cluster" data-gap="2xs" data-align="center">
-                      <span style="font-size: 0.95rem;">${m.method.includes('Zelle') ? '🟣' : (m.method.includes('Punto') ? '💳' : (m.method.includes('Móvil') ? '📱' : '💵'))}</span>
+                      <span style="font-size: 0.95rem;">${icon}</span>
                       <strong>${m.method}</strong>
-                      <span class="badge" data-paint="neutral" style="font-size: 0.65rem; padding: 1px 4px;">${m.count}</span>
+                      <span class="badge" data-paint="neutral" style="font-size: 0.65rem; padding: 1px 4px;">${m.count} ${m.count === 1 ? 'pago' : 'pagos'}</span>
                     </div>
                     <div style="text-align: right;">
                       <strong style="color: #10b981; font-size: 0.82rem;">${formatUSD(m.totalUSD)}</strong>
@@ -439,7 +447,8 @@ export function renderDashboardTab(metrics) {
                     <div style="background: #10b981; width: ${m.percentage}%; height: 100%;"></div>
                   </div>
                 </div>
-              `).join('')}
+              `;
+              }).join('')}
             </div>
           `}
         </div>
@@ -580,12 +589,14 @@ export function renderCobrosTab(metrics) {
                   ${Number(c.tasa_cambio).toFixed(2)} Bs/$
                 </td>
                 <td>
-                  <span class="badge" data-paint="neutral" style="font-size: 0.68rem; font-weight: 600;">
-                    ${c.metodo}
+                  <span class="badge" data-paint="success" style="font-size: 0.68rem; font-weight: 600;">
+                    ${c.metodo_pago || c.metodo}
                   </span>
-                  <small style="display: block; opacity: 0.75; font-size: 0.68rem; margin-top: 2px;">
-                    ${c.referencia}
-                  </small>
+                  ${c.referencia && c.referencia !== 'Sin referencia registrada' ? `
+                    <small style="display: block; opacity: 0.75; font-size: 0.68rem; margin-top: 2px;">
+                      Ref: ${c.referencia}
+                    </small>
+                  ` : ''}
                 </td>
               </tr>
             `).join('')}

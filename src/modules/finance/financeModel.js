@@ -194,32 +194,53 @@ export const financeModel = {
   },
 
   /**
-   * Determina la categoría del método de pago a partir de la referencia o notas
+   * Determina la categoría del método de pago a partir del campo 'metodo_pago' o fallback a referencia
+   * Opciones oficiales: "Punto de Venta", "Efectivo Divisas", "Efectivo Bs", "Pago Movil", "Binance", "Otros"
    */
-  categorizePaymentMethod(referencia) {
+  categorizePaymentMethod(cobro) {
+    if (!cobro) return 'Efectivo Divisas';
+
+    // 1. Prioridad: campo metodo_pago registrado en BD
+    const rawMetodo = typeof cobro === 'object' ? cobro.metodo_pago : cobro;
+    if (rawMetodo && typeof rawMetodo === 'string' && rawMetodo.trim()) {
+      const clean = rawMetodo.trim();
+      const valid = ['Punto de Venta', 'Efectivo Divisas', 'Efectivo Bs', 'Pago Movil', 'Binance', 'Otros'];
+      if (valid.includes(clean)) {
+        return clean;
+      }
+      // Mapeos menores por si hay diferencias de tilde
+      const lower = clean.toLowerCase();
+      if (lower.includes('punto')) return 'Punto de Venta';
+      if (lower.includes('divisa') || lower.includes('dolar') || lower.includes('usd')) return 'Efectivo Divisas';
+      if (lower.includes('bs') || lower.includes('bolivar')) return 'Efectivo Bs';
+      if (lower.includes('movil') || lower.includes('móvil')) return 'Pago Movil';
+      if (lower.includes('binance') || lower.includes('usdt')) return 'Binance';
+      if (lower.includes('otro')) return 'Otros';
+      return clean;
+    }
+
+    // 2. Fallback: analizar texto de referencia para registros históricos
+    const referencia = typeof cobro === 'object' ? cobro.referencia : cobro;
     if (!referencia || typeof referencia !== 'string') {
-      return 'Efectivo Divisas ($)';
+      return 'Efectivo Divisas';
     }
-    const lower = referencia.toLowerCase();
-    if (lower.includes('punto') || lower.includes('tarjeta') || lower.includes('pos') || lower.includes('débito') || lower.includes('crédito')) {
-      return 'Punto de Venta / Tarjeta';
+    const lowerRef = referencia.toLowerCase();
+    if (lowerRef.includes('punto') || lowerRef.includes('tarjeta') || lowerRef.includes('pos') || lowerRef.includes('débito') || lowerRef.includes('crédito')) {
+      return 'Punto de Venta';
     }
-    if (lower.includes('pago móvil') || lower.includes('pagomovil') || lower.includes('pago movil') || lower.includes('pm')) {
-      return 'Pago Móvil';
+    if (lowerRef.includes('pago móvil') || lowerRef.includes('pagomovil') || lowerRef.includes('pago movil') || lowerRef.includes('pm')) {
+      return 'Pago Movil';
     }
-    if (lower.includes('zelle')) {
-      return 'Zelle';
+    if (lowerRef.includes('binance') || lowerRef.includes('usdt')) {
+      return 'Binance';
     }
-    if (lower.includes('transf') || lower.includes('transferencia')) {
-      return 'Transferencia Bancaria';
+    if (lowerRef.includes('bs') || lowerRef.includes('bolivar') || lowerRef.includes('bolívares')) {
+      return 'Efectivo Bs';
     }
-    if (lower.includes('efectivo') || lower.includes('dolar') || lower.includes('dólar') || lower.includes('cash') || lower.includes('usd')) {
-      return 'Efectivo Divisas ($)';
+    if (lowerRef.includes('efectivo') || lowerRef.includes('dolar') || lowerRef.includes('dólar') || lowerRef.includes('cash') || lowerRef.includes('usd')) {
+      return 'Efectivo Divisas';
     }
-    if (lower.includes('bs') || lower.includes('bolivar') || lower.includes('bolívares')) {
-      return 'Efectivo Bolívares (Bs.)';
-    }
-    return 'Otros / Referencia';
+    return 'Otros';
   },
 
   /**
@@ -515,7 +536,7 @@ export const financeModel = {
     // =========================================================================
     const paymentMethodsMap = new Map();
     filteredCobros.forEach(cobro => {
-      const method = this.categorizePaymentMethod(cobro.referencia);
+      const method = this.categorizePaymentMethod(cobro);
       const usd = Number(cobro.monto_cobrado) || 0;
       const rate = Number(cobro.tasa_cambio) || 1;
       const bs = usd * rate;
@@ -611,8 +632,9 @@ export const financeModel = {
         monto_usd: usd,
         tasa_cambio: rate,
         monto_bs: bs,
+        metodo_pago: cobro.metodo_pago || this.categorizePaymentMethod(cobro),
         referencia: cobro.referencia || 'Sin referencia registrada',
-        metodo: this.categorizePaymentMethod(cobro.referencia),
+        metodo: this.categorizePaymentMethod(cobro),
         confirmado: cobro.confirmado !== false,
         paciente_nombre: paciente?.nombre || 'Paciente no especificado',
         paciente_ci: paciente?.ci || '--',

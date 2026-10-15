@@ -343,15 +343,28 @@ export function renderCobroModal() {
                 </div>
               </div>
 
-              <!-- Referencia / Forma de Pago (Opcional) -->
+              <!-- Método de Pago -->
               <div class="field">
-                <label for="cobro-referencia" class="label" style="margin-bottom: 0.12rem; font-size: 0.76rem;">Método de Pago / Referencia</label>
+                <label for="cobro-metodo-pago" class="label" style="margin-bottom: 0.12rem; font-size: 0.76rem;">Método de Pago *</label>
+                <select id="cobro-metodo-pago" class="input select" style="padding: 0.25rem 0.45rem; font-size: 0.82rem; height: 32px;" required>
+                  <option value="Punto de Venta">💳 Punto de Venta</option>
+                  <option value="Efectivo Divisas" selected>💵 Efectivo Divisas</option>
+                  <option value="Efectivo Bs">🇻🇪 Efectivo Bs</option>
+                  <option value="Pago Movil">📱 Pago Movil</option>
+                  <option value="Binance">🟡 Binance</option>
+                  <option value="Otros">📝 Otros</option>
+                </select>
+              </div>
+
+              <!-- Referencia / Observación (Opcional) -->
+              <div class="field">
+                <label for="cobro-referencia" class="label" style="margin-bottom: 0.12rem; font-size: 0.76rem;">Referencia / Comprobante (Opcional)</label>
                 <input 
                   type="text" 
                   id="cobro-referencia" 
                   class="input" 
                   style="padding: 0.25rem 0.45rem; font-size: 0.82rem; height: 32px;" 
-                  placeholder="Ej. Efectivo Divisas / Pago Móvil / Punto" 
+                  placeholder="Ej. N° aprobación, comprobante, teléfono..." 
                 />
               </div>
             </div>

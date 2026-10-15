@@ -671,7 +671,8 @@ export const citaController = {
             <span style="opacity: 0.85; font-size: 0.72rem; white-space: nowrap;">📅 ${fechaStr}</span>
             <strong style="color: #10b981; font-size: 0.82rem; white-space: nowrap;">$${formattedUsd} USD</strong>
             <span style="opacity: 0.75; font-size: 0.71rem; white-space: nowrap;">(~${formattedBs} Bs.)</span>
-            ${cobro.referencia ? `<span class="badge" data-paint="neutral" style="font-size: 0.66rem; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${cobro.referencia}">💳 ${cobro.referencia}</span>` : ''}
+            <span class="badge" data-paint="success" style="font-size: 0.66rem; font-weight: 600;">🏷️ ${cobro.metodo_pago || 'Efectivo Divisas'}</span>
+            ${cobro.referencia ? `<span class="badge" data-paint="neutral" style="font-size: 0.66rem; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${cobro.referencia}">Ref: ${cobro.referencia}</span>` : ''}
           </div>
           <div class="cluster" style="gap: 0.25rem; flex-shrink: 0;">
             <button type="button" class="button btn-edit-cobro" data-id="${cobro.id}" data-variant="ghost" data-size="sm" style="font-size: 0.68rem; padding: 1px 6px; height: 22px;" title="Editar este pago">
@@ -694,6 +695,8 @@ export const citaController = {
 
     $('#cobro-id').value = '';
     $('#cobro-monto-usd').value = '';
+    const metodoSelect = $('#cobro-metodo-pago');
+    if (metodoSelect) metodoSelect.value = 'Efectivo Divisas';
     $('#cobro-referencia').value = '';
 
     const today = new Date().toISOString().split('T')[0];
@@ -739,6 +742,10 @@ export const citaController = {
 
     $('#cobro-id').value = cobro.id;
     $('#cobro-monto-usd').value = cobro.monto_cobrado || '';
+    const metodoSelect = $('#cobro-metodo-pago');
+    if (metodoSelect) {
+      metodoSelect.value = cobro.metodo_pago || 'Efectivo Divisas';
+    }
     $('#cobro-referencia').value = cobro.referencia || '';
 
     const fechaInput = $('#cobro-fecha-pago');
@@ -903,6 +910,7 @@ export const citaController = {
     const citaId = $('#cobro-cita-id')?.value;
     const fechaPago = $('#cobro-fecha-pago')?.value;
     const montoUsdStr = $('#cobro-monto-usd')?.value;
+    const metodoPago = $('#cobro-metodo-pago')?.value || 'Efectivo Divisas';
     const referencia = $('#cobro-referencia')?.value?.trim();
     const tasa = this.currentTasa || parseFloat($('#cobro-tasa-cambio')?.value || '0');
 
@@ -943,6 +951,7 @@ export const citaController = {
         monto_cobrado: montoUsd,
         tasa_cambio: tasa,
         fecha_pago: fechaPago,
+        metodo_pago: metodoPago,
         referencia: referencia || null,
         confirmado: true
       };
