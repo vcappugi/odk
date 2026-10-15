@@ -440,6 +440,18 @@ export function renderReciboModal() {
             <span style="font-size: 0.68rem; opacity: 0.75;">Verifique el teléfono o correo antes de enviar</span>
           </div>
 
+          <!-- Detalle de Historia Médica (Tratamiento y Diagnóstico) -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; background: rgba(2, 132, 199, 0.05); border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 6px; padding: 0.35rem 0.55rem;">
+            <div class="field" style="margin: 0;">
+              <label for="recibo-send-tratamiento" class="label" style="font-size: 0.70rem; margin-bottom: 2px; color: #0284c7; font-weight: 700;">🩺 Tratamiento Incluido en Historia Médica</label>
+              <input type="text" id="recibo-send-tratamiento" class="input" style="font-size: 0.80rem; height: 28px; padding: 2px 6px;" placeholder="Ej. Limpieza profunda + Resina pieza 16" />
+            </div>
+            <div class="field" style="margin: 0;">
+              <label for="recibo-send-diagnostico" class="label" style="font-size: 0.70rem; margin-bottom: 2px; color: #0284c7; font-weight: 700;">📋 Diagnóstico / Indicaciones</label>
+              <input type="text" id="recibo-send-diagnostico" class="input" style="font-size: 0.80rem; height: 28px; padding: 2px 6px;" placeholder="Ej. Caries de dentina / Control en 15 días" />
+            </div>
+          </div>
+
           <!-- Campos editables para teléfono (WhatsApp) y correo (Email) -->
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
             <div class="field" style="margin: 0;">

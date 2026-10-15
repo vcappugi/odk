@@ -3,14 +3,16 @@
  * ODONTOKRIS - Sistema Odontológico
  * 
  * Permite generar recibos de pago desde el modal de cobro de citas,
- * con envío directo por WhatsApp (usando el formato de felicitación de cumpleaños),
- * envío por Correo Electrónico (mailto), copiado rápido y formato imprimible en PDF.
+ * incorporando el detalle clínico de la Historia Médica (Tratamiento, Diagnóstico,
+ * Motivo e Indicaciones), con capacidad de envío por WhatsApp (mecanismo de cumpleaños),
+ * Correo Electrónico (mailto), copiado rápido e impresión física / PDF.
  */
 
 import { notificationService } from '../../services/notificationService.js';
 import { consultorioModel } from '../consultorio/consultorioModel.js';
 import { authModel } from '../auth/authModel.js';
 import { patientModel } from '../patients/patientModel.js';
+import { historialModel } from '../historial/historialModel.js';
 import { $ } from '../../utils/dom.js';
 
 export const reciboService = {
@@ -18,9 +20,10 @@ export const reciboService = {
   activeContext: null,
 
   /**
-   * Genera el objeto estructurado con todos los datos necesarios para el recibo
+   * Genera el objeto estructurado con todos los datos necesarios para el recibo,
+   * incluyendo los detalles clínicos de la Historia Médica.
    */
-  buildReceiptData({ cita, cobroId = null, allCobros = [], paciente = null, doctor = null, consultorio = null }) {
+  buildReceiptData({ cita, cobroId = null, allCobros = [], paciente = null, doctor = null, consultorio = null, historia = null }) {
     const cobros = Array.isArray(allCobros) ? allCobros : (allCobros ? [allCobros] : []);
     
     // Si se especificó un cobro particular, mostrar solo ese pago.
@@ -28,6 +31,12 @@ export const reciboService = {
     const selectedCobro = cobroId ? cobros.find(c => Number(c.id) === Number(cobroId)) : null;
     const isSingle = Boolean(selectedCobro) || cobros.length === 1;
     const activeCobro = selectedCobro || (cobros.length === 1 ? cobros[0] : null);
+
+    // Detalle de Historia Médica
+    const historiaTratamiento = (historia?.tratamiento || cita?.observacion || 'Atención Odontológica').trim();
+    const historiaDiagnostico = (historia?.diagnostico || '').trim();
+    const historiaMotivo = (historia?.motivo_consulta || '').trim();
+    const historiaObservaciones = (historia?.observaciones || '').trim();
 
     let items = [];
     let reciboNumero = '';
@@ -122,6 +131,13 @@ export const reciboService = {
         id: activeConsultorio?.id || null,
         nombre: consultorioNombre
       },
+      historia: {
+        id: historia?.id || null,
+        tratamiento: historiaTratamiento,
+        diagnostico: historiaDiagnostico,
+        motivo_consulta: historiaMotivo,
+        observaciones: historiaObservaciones
+      },
       items,
       totalUsd,
       totalBs,
@@ -133,13 +149,31 @@ export const reciboService = {
 
   /**
    * Construye el texto enriquecido para el envío por WhatsApp
-   * Utiliza el mismo mecanismo de formato de la felicitación de cumpleaños.
+   * Incluye el detalle de Historia Médica y el formato de felicitación de cumpleaños.
    */
   buildWhatsAppMessage(data) {
     const itemsText = data.items.map((it, idx) => {
       const refPart = it.referencia ? ` (Ref: ${it.referencia})` : '';
       return `• Pago #${idx + 1}: *$${it.formattedUsd} USD* (~${it.formattedBs} Bs.)\n  ↳ ${it.metodo}${refPart}`;
     }).join('\n');
+
+    const historiaParts = [];
+    if (data.historia.tratamiento) {
+      historiaParts.push(`• *Tratamiento:* ${data.historia.tratamiento}`);
+    }
+    if (data.historia.diagnostico) {
+      historiaParts.push(`• *Diagnóstico:* ${data.historia.diagnostico}`);
+    }
+    if (data.historia.motivo_consulta) {
+      historiaParts.push(`• *Motivo de Consulta:* ${data.historia.motivo_consulta}`);
+    }
+    if (data.historia.observaciones) {
+      historiaParts.push(`• *Indicaciones:* ${data.historia.observaciones}`);
+    }
+
+    const historiaBlock = historiaParts.length > 0 
+      ? `\n🩺 *DETALLE CLÍNICO / HISTORIA MÉDICA:*\n${historiaParts.join('\n')}\n`
+      : '';
 
     return (
 `🦷 *ODONTOKRIS — Sistema Odontológico*
@@ -152,7 +186,7 @@ Estimado(a) *${data.paciente.nombre}*, hemos recibido su pago satisfactoriamente
 👤 *Paciente:* ${data.paciente.nombre} (C.I. ${data.paciente.ci})
 👨‍⚕️ *Especialista:* ${data.doctor.nombre}
 🏥 *Sede:* ${data.consultorio.nombre}
-
+${historiaBlock}
 *DETALLE DEL COBRO:*
 ${itemsText}
 
@@ -184,6 +218,24 @@ Si tiene alguna consulta, estamos a su total disposición.`
       return `  - Pago #${idx + 1}: $${it.formattedUsd} USD (~${it.formattedBs} Bs.) | ${it.metodo}${refPart}`;
     }).join('\n');
 
+    const historiaParts = [];
+    if (data.historia.tratamiento) {
+      historiaParts.push(`- Tratamiento Realizado: ${data.historia.tratamiento}`);
+    }
+    if (data.historia.diagnostico) {
+      historiaParts.push(`- Diagnóstico: ${data.historia.diagnostico}`);
+    }
+    if (data.historia.motivo_consulta) {
+      historiaParts.push(`- Motivo de Consulta: ${data.historia.motivo_consulta}`);
+    }
+    if (data.historia.observaciones) {
+      historiaParts.push(`- Indicaciones / Observaciones: ${data.historia.observaciones}`);
+    }
+
+    const historiaBlock = historiaParts.length > 0 
+      ? `\nDETALLE CLÍNICO (HISTORIA MÉDICA):\n${historiaParts.join('\n')}\n`
+      : '';
+
     return (
 `Estimado(a) ${data.paciente.nombre},
 
@@ -202,7 +254,7 @@ DATOS DEL PACIENTE:
 - Nombre: ${data.paciente.nombre}
 - Cédula de Identidad: ${data.paciente.ci}
 - Especialista Tratante: ${data.doctor.nombre}
-
+${historiaBlock}
 DESGLOSE DE PAGO(S):
 ${itemsText}
 
@@ -348,7 +400,7 @@ ODONTOKRIS — Sistema Odontológico`
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 12px;
-        margin-bottom: 16px;
+        margin-bottom: 14px;
         background: #f8fafc;
         border: 1px solid #f1f5f9;
         border-radius: 6px;
@@ -363,6 +415,22 @@ ODONTOKRIS — Sistema Odontológico`
       .print-item-val {
         font-weight: 600;
         color: #0f172a;
+      }
+      .print-clinical-box {
+        background: #f0f9ff;
+        border: 1px solid #bae6fd;
+        border-radius: 6px;
+        padding: 10px 14px;
+        margin-bottom: 16px;
+        font-size: 12px;
+      }
+      .print-clinical-header {
+        font-weight: 700;
+        color: #0284c7;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+        font-size: 10px;
+        letter-spacing: 0.5px;
       }
       table.print-table {
         width: 100%;
@@ -482,6 +550,15 @@ ODONTOKRIS — Sistema Odontológico`
             </div>
           </div>
 
+          <!-- Bloque de Detalle Clínico de Historia Médica -->
+          <div class="print-clinical-box">
+            <div class="print-clinical-header">🩺 DETALLE CLÍNICO / HISTORIA MÉDICA</div>
+            <div><strong>Tratamiento Realizado:</strong> ${data.historia.tratamiento}</div>
+            ${data.historia.diagnostico ? `<div><strong>Diagnóstico:</strong> ${data.historia.diagnostico}</div>` : ''}
+            ${data.historia.motivo_consulta ? `<div><strong>Motivo de Consulta:</strong> ${data.historia.motivo_consulta}</div>` : ''}
+            ${data.historia.observaciones ? `<div><strong>Indicaciones / Observaciones:</strong> ${data.historia.observaciones}</div>` : ''}
+          </div>
+
           <table class="print-table">
             <thead>
               <tr>
@@ -497,7 +574,7 @@ ODONTOKRIS — Sistema Odontológico`
                 <tr>
                   <td>${idx + 1}</td>
                   <td>
-                    <strong>Atención Odontológica</strong><br>
+                    <strong>${data.historia.tratamiento}</strong><br>
                     <small style="color: #64748b;">${it.metodo}</small>
                   </td>
                   <td>${it.referencia || 'N/A'}</td>
@@ -623,8 +700,42 @@ ODONTOKRIS — Sistema Odontológico`
           </div>
         </div>
 
+        <!-- Detalle Clínico de Historia Médica -->
+        <div class="box stack receipt-clinical-box" data-surface="sunken" data-border style="background: rgba(2, 132, 199, 0.05); border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 6px; padding: 0.45rem 0.65rem; gap: 0.2rem;">
+          <div class="cluster" data-justify="between" data-align="center">
+            <span style="font-size: 0.72rem; font-weight: 700; color: #0284c7; display: flex; align-items: center; gap: 0.3rem;">
+              🩺 Detalle Clínico / Historia Médica
+            </span>
+            ${data.historia.id ? `<span class="badge" data-paint="neutral" style="font-size: 0.62rem; padding: 1px 4px;">Ficha #${data.historia.id}</span>` : ''}
+          </div>
+          <div style="font-size: 0.75rem; line-height: 1.35;">
+            <div>
+              <span style="opacity: 0.75; font-size: 0.68rem;">Tratamiento Realizado:</span>
+              <strong style="color: #0f172a; display: block;">${data.historia.tratamiento}</strong>
+            </div>
+            ${data.historia.diagnostico ? `
+              <div style="margin-top: 2px;">
+                <span style="opacity: 0.75; font-size: 0.68rem;">Diagnóstico:</span>
+                <span style="font-weight: 600;">${data.historia.diagnostico}</span>
+              </div>
+            ` : ''}
+            ${data.historia.motivo_consulta ? `
+              <div style="margin-top: 2px;">
+                <span style="opacity: 0.75; font-size: 0.68rem;">Motivo de Consulta:</span>
+                <span>${data.historia.motivo_consulta}</span>
+              </div>
+            ` : ''}
+            ${data.historia.observaciones ? `
+              <div style="margin-top: 2px;">
+                <span style="opacity: 0.75; font-size: 0.68rem;">Indicaciones:</span>
+                <span style="font-style: italic;">${data.historia.observaciones}</span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
         <!-- Desglose de Pagos -->
-        <div class="receipt-items-container" style="max-height: 120px; overflow-y: auto;">
+        <div class="receipt-items-container" style="max-height: 110px; overflow-y: auto;">
           <table class="table" style="width: 100%; font-size: 0.73rem; margin: 0;">
             <thead>
               <tr style="border-bottom: 1px solid rgba(125, 125, 125, 0.2);">
@@ -638,7 +749,7 @@ ODONTOKRIS — Sistema Odontológico`
               ${data.items.map((it, idx) => `
                 <tr style="border-bottom: 1px solid rgba(125, 125, 125, 0.08);">
                   <td style="padding: 4px 6px;">
-                    <strong>Atención Odontológica</strong><br>
+                    <strong>${data.historia.tratamiento}</strong><br>
                     <span class="badge" data-paint="neutral" style="font-size: 0.64rem; padding: 0 4px;">${it.metodo}</span>
                   </td>
                   <td style="padding: 4px 6px; font-size: 0.70rem; opacity: 0.85;">
@@ -681,9 +792,9 @@ ODONTOKRIS — Sistema Odontológico`
   },
 
   /**
-   * Abre el Modal de Recibo y lo llena con los datos de cobro
+   * Abre el Modal de Recibo y lo llena con los datos de cobro e historia médica
    */
-  async openReciboModal({ cita, cobroId = null, allCobros = [], paciente = null, doctor = null, consultorio = null }) {
+  async openReciboModal({ cita, cobroId = null, allCobros = [], paciente = null, doctor = null, consultorio = null, historia = null }) {
     const dialog = $('#modal-recibo-pago');
     if (!dialog) return;
 
@@ -697,13 +808,24 @@ ODONTOKRIS — Sistema Odontológico`
       }
     }
 
+    // Asegurar historia médica si no vino pasada
+    let resolvedHistoria = historia;
+    if (!resolvedHistoria && (cita?.id || cita?.paciente_id)) {
+      try {
+        resolvedHistoria = await historialModel.getByCitaOrPatient(cita?.id, cita?.paciente_id, cita?.fecha);
+      } catch (e) {
+        console.warn('[ReciboService] Error buscando historia médica:', e);
+      }
+    }
+
     this.activeContext = {
       cita,
       cobroId,
       allCobros,
       paciente: resolvedPaciente,
       doctor: doctor || cita?.doctor,
-      consultorio: consultorio || consultorioModel.getActiveConsultorio()
+      consultorio: consultorio || consultorioModel.getActiveConsultorio(),
+      historia: resolvedHistoria
     };
 
     this.currentReceiptData = this.buildReceiptData(this.activeContext);
@@ -733,6 +855,16 @@ ODONTOKRIS — Sistema Odontológico`
         selectorContainer.style.display = 'none';
         selectorContainer.innerHTML = '';
       }
+    }
+
+    // Pre-llenar campos de detalle clínico de la Historia Médica
+    const tratInput = $('#recibo-send-tratamiento');
+    const diagInput = $('#recibo-send-diagnostico');
+    if (tratInput) {
+      tratInput.value = this.currentReceiptData.historia.tratamiento || '';
+    }
+    if (diagInput) {
+      diagInput.value = this.currentReceiptData.historia.diagnostico || this.currentReceiptData.historia.observaciones || '';
     }
 
     // Pre-llenar campos de contacto del paciente
@@ -766,6 +898,24 @@ ODONTOKRIS — Sistema Odontológico`
     const dialog = $('#modal-recibo-pago');
     if (dialog && dialog.open) {
       dialog.close();
+    }
+  },
+
+  /**
+   * Actualiza el detalle clínico del recibo en vivo cuando el usuario edita los campos
+   */
+  updateClinicalDetail(tratamiento, diagnostico) {
+    if (!this.currentReceiptData) return;
+    if (tratamiento !== undefined) {
+      this.currentReceiptData.historia.tratamiento = tratamiento.trim() || 'Atención Odontológica';
+    }
+    if (diagnostico !== undefined) {
+      this.currentReceiptData.historia.diagnostico = diagnostico.trim();
+    }
+
+    const previewContainer = $('#recibo-preview-card-container');
+    if (previewContainer) {
+      previewContainer.innerHTML = this.renderPreviewCard(this.currentReceiptData);
     }
   },
 
@@ -822,7 +972,21 @@ ODONTOKRIS — Sistema Odontológico`
       }
     });
 
-    // 6. Conmutar entre pagos en el recibo (si hay múltiples cobros)
+    // 6. Edición en vivo del Tratamiento de la Historia Médica
+    document.addEventListener('input', (e) => {
+      if (e.target && e.target.id === 'recibo-send-tratamiento') {
+        this.updateClinicalDetail(e.target.value, undefined);
+      }
+    });
+
+    // 7. Edición en vivo del Diagnóstico de la Historia Médica
+    document.addEventListener('input', (e) => {
+      if (e.target && e.target.id === 'recibo-send-diagnostico') {
+        this.updateClinicalDetail(undefined, e.target.value);
+      }
+    });
+
+    // 8. Conmutar entre pagos en el recibo (si hay múltiples cobros)
     document.addEventListener('click', (e) => {
       const switchBtn = e.target.closest('.btn-recibo-switch');
       if (switchBtn && this.activeContext) {
@@ -830,6 +994,12 @@ ODONTOKRIS — Sistema Odontológico`
         const cobroId = switchBtn.dataset.id ? Number(switchBtn.dataset.id) : null;
         this.activeContext.cobroId = cobroId;
         this.currentReceiptData = this.buildReceiptData(this.activeContext);
+
+        // Si el usuario había editado los campos en pantalla, preservar esos valores
+        const currentTrat = $('#recibo-send-tratamiento')?.value;
+        const currentDiag = $('#recibo-send-diagnostico')?.value;
+        if (currentTrat) this.currentReceiptData.historia.tratamiento = currentTrat;
+        if (currentDiag) this.currentReceiptData.historia.diagnostico = currentDiag;
 
         // Actualizar previsualización
         const previewContainer = $('#recibo-preview-card-container');

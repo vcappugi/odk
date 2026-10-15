@@ -15,6 +15,7 @@ import { authModel } from '../auth/authModel.js';
 import { notificationService } from '../../services/notificationService.js';
 import { permissionService } from '../../services/permissionService.js';
 import { historialController } from '../historial/historialController.js';
+import { historialModel } from '../historial/historialModel.js';
 import { odontogramaController } from '../odontograma/odontogramaController.js';
 import { reciboService } from './reciboService.js';
 import { $ } from '../../utils/dom.js';
@@ -922,13 +923,22 @@ export const citaController = {
       || authModel.getActiveConsultorio()
       || authModel.getCurrentUser()?.consultorio;
 
+    // Consultar el detalle de la historia médica vinculada a esta cita o paciente
+    let historia = null;
+    try {
+      historia = await historialModel.getByCitaOrPatient(cita?.id, cita?.paciente_id, cita?.fecha);
+    } catch (err) {
+      console.warn('[CitaController] Error obteniendo historia médica para recibo:', err);
+    }
+
     await reciboService.openReciboModal({
       cita,
       cobroId,
       allCobros: this.currentCobros,
       paciente,
       doctor: cita?.doctor,
-      consultorio
+      consultorio,
+      historia
     });
   },
 

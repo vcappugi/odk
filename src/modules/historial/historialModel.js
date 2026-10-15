@@ -132,6 +132,62 @@ export const historialModel = {
   },
 
   /**
+   * Obtiene la entrada de historia médica asociada a una cita específica
+   * o la más relevante/reciente del paciente
+   * @param {number|string} citaId
+   * @param {number|string} pacienteId
+   * @param {string} fecha
+   */
+  async getByCitaOrPatient(citaId, pacienteId = null, fecha = null) {
+    if (!citaId && !pacienteId) return null;
+
+    // 1. Si tenemos pacienteId, obtener registros del paciente
+    if (pacienteId) {
+      const records = await this.getAllByPaciente(pacienteId);
+      if (records && records.length > 0) {
+        // Primero buscar coincidencia exacta por cita_id
+        if (citaId) {
+          const matchCita = records.find(r => r.cita_id && Number(r.cita_id) === Number(citaId));
+          if (matchCita) return matchCita;
+        }
+        // Segundo buscar coincidencia por fecha de la cita
+        if (fecha) {
+          const matchFecha = records.find(r => r.fecha === fecha);
+          if (matchFecha) return matchFecha;
+        }
+        // Fallback al registro más reciente del paciente
+        return records[0];
+      }
+    }
+
+    // 2. Si no hay pacienteId o no arrojó resultados, pero tenemos citaId
+    const supabase = getSupabase();
+    if (supabase && citaId && this.tableAvailableOnSupabase !== false) {
+      try {
+        const { data, error } = await supabase
+          .from('historial_medico')
+          .select('*')
+          .eq('cita_id', Number(citaId))
+          .order('id', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && data) return data;
+      } catch (err) {
+        console.warn('[HistorialModel] Error buscando por cita_id:', err);
+      }
+    }
+
+    // Fallback local buscando por cita_id
+    if (citaId) {
+      const local = this._getLocalRecords();
+      return local.find(r => r.cita_id && Number(r.cita_id) === Number(citaId)) || null;
+    }
+
+    return null;
+  },
+
+  /**
    * Obtiene un registro puntual por su ID
    * @param {number|string} id
    */
