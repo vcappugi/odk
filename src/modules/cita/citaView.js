@@ -182,6 +182,9 @@ export function renderCitaModal() {
 
     <!-- Modal de Registro de Cobro de Cita -->
     ${renderCobroModal()}
+
+    <!-- Modal de Recibo de Pago (WhatsApp, Correo, Impresión) -->
+    ${renderReciboModal()}
   `;
 }
 
@@ -236,6 +239,9 @@ export function renderCobroModal() {
               <strong id="cobro-total-usd-display" style="font-size: 1.05rem; font-weight: 800; color: #10b981;">$0.00 USD</strong>
               <span id="cobro-total-bs-display" style="font-size: 0.82rem; font-weight: 700; opacity: 0.9;">0,00 Bs.</span>
             </div>
+            <button type="button" id="btn-cobro-quick-recibo" class="button btn-generar-recibo" data-variant="outlined" data-paint="success" style="font-size: 0.70rem; padding: 1px 6px; height: 22px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem; margin-top: 3px;" title="Generar recibo de pago para WhatsApp, Correo o Imprimir">
+              🧾 Generar Recibo
+            </button>
           </div>
         </div>
 
@@ -379,9 +385,14 @@ export function renderCobroModal() {
                 ➕ Incluir Otro Pago
               </button>
             </div>
-            <button type="submit" id="btn-submit-cobro" class="button" data-paint="success" style="font-weight: 700; font-size: 0.78rem; padding: 0.25rem 0.85rem; height: 30px;">
-              💾 Guardar Pago
-            </button>
+            <div class="cluster" style="gap: 0.4rem;">
+              <button type="button" id="btn-cobro-footer-recibo" class="button btn-generar-recibo" data-variant="outlined" data-paint="success" style="font-size: 0.78rem; padding: 0.25rem 0.75rem; height: 30px; font-weight: 700; display: inline-flex; align-items: center; gap: 0.35rem;" title="Generar recibo de pago para WhatsApp, Correo o Impresión">
+                🧾 Recibo de Pago
+              </button>
+              <button type="submit" id="btn-submit-cobro" class="button" data-paint="success" style="font-weight: 700; font-size: 0.78rem; padding: 0.25rem 0.85rem; height: 30px;">
+                💾 Guardar Pago
+              </button>
+            </div>
           </footer>
         </form>
 
@@ -389,3 +400,88 @@ export function renderCobroModal() {
     </dialog>
   `;
 }
+
+/**
+ * Modal de Visualización, Envío e Impresión de Recibo de Pago
+ * Genera el recibo estético y permite enviarlo por WhatsApp (mismo mecanismo de felicitación de cumpleaños),
+ * Correo Electrónico (mailto), copiado al portapapeles e impresión física / PDF.
+ */
+export function renderReciboModal() {
+  return `
+    <dialog id="modal-recibo-pago" class="dialog custom-modal modal-recibo-dialog" aria-labelledby="modal-recibo-title">
+      <div class="modal-box box stack" data-surface="raised" data-border data-gap="xs">
+        
+        <!-- Cabecera del Modal de Recibo -->
+        <header class="modal-header cluster" data-justify="between" data-align="center">
+          <div class="cluster" data-gap="xs" data-align="center">
+            <span class="modal-icon-badge" style="width: 28px; height: 28px; background: rgba(2, 132, 199, 0.18); color: #0284c7; font-size: 1rem;">🧾</span>
+            <div>
+              <h3 id="modal-recibo-title" style="margin: 0; font-size: 1.05rem;">Recibo de Pago Odontológico</h3>
+              <p id="modal-recibo-subtitle" style="margin: 0; font-size: 0.74rem; opacity: 0.75;">Comprobante de cobro para entrega o despacho al paciente</p>
+            </div>
+          </div>
+          <button type="button" class="button btn-close-recibo-modal" data-variant="ghost" data-size="sm" aria-label="Cerrar recibo">✕</button>
+        </header>
+
+        <!-- Barra de selección de pago (si hay múltiples cobros) -->
+        <div id="recibo-cobros-selector" class="cluster" data-gap="xs" style="display: none; padding: 0.15rem 0; flex-wrap: wrap;">
+          <!-- Inyectado dinámicamente -->
+        </div>
+
+        <!-- Contenedor de la Tarjeta de Previsualización del Recibo -->
+        <div id="recibo-preview-card-container">
+          <!-- Inyectado dinámicamente con renderPreviewCard -->
+        </div>
+
+        <!-- Panel de Despacho y Envío al Paciente -->
+        <div class="box stack receipt-dispatch-box" data-surface="sunken" data-border style="padding: 0.45rem 0.65rem; border-radius: 6px; gap: 0.35rem;">
+          <div class="cluster" data-justify="between" data-align="center">
+            <strong style="font-size: 0.76rem; color: var(--primary, #0284c7);">📤 Canales de Envío y Entrega al Paciente</strong>
+            <span style="font-size: 0.68rem; opacity: 0.75;">Verifique el teléfono o correo antes de enviar</span>
+          </div>
+
+          <!-- Campos editables para teléfono (WhatsApp) y correo (Email) -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <div class="field" style="margin: 0;">
+              <label for="recibo-send-phone" class="label" style="font-size: 0.70rem; margin-bottom: 2px;">💬 Teléfono / WhatsApp del Paciente</label>
+              <input type="tel" id="recibo-send-phone" class="input" style="font-size: 0.80rem; height: 28px; padding: 2px 6px;" placeholder="Ej. 04141234567 o 584141234567" />
+            </div>
+            <div class="field" style="margin: 0;">
+              <label for="recibo-send-email" class="label" style="font-size: 0.70rem; margin-bottom: 2px;">✉️ Correo Electrónico del Paciente</label>
+              <input type="email" id="recibo-send-email" class="input" style="font-size: 0.80rem; height: 28px; padding: 2px 6px;" placeholder="Ej. paciente@gmail.com" />
+            </div>
+          </div>
+
+          <!-- Botones de Acción de Despacho -->
+          <div class="cluster" data-justify="between" data-align="center" style="gap: 0.35rem; margin-top: 0.2rem; flex-wrap: wrap;">
+            <div class="cluster" style="gap: 0.35rem;">
+              <button type="button" id="btn-recibo-send-whatsapp" class="button" data-paint="success" style="font-weight: 700; font-size: 0.76rem; padding: 0.25rem 0.75rem; height: 29px; display: inline-flex; align-items: center; gap: 0.35rem;" title="Enviar recibo de pago por WhatsApp (mismo formato de felicitación)">
+                <span>💬 Enviar por WhatsApp</span>
+              </button>
+              <button type="button" id="btn-recibo-send-email" class="button" data-paint="primary" style="font-weight: 700; font-size: 0.76rem; padding: 0.25rem 0.75rem; height: 29px; display: inline-flex; align-items: center; gap: 0.35rem;" title="Enviar recibo de pago por Correo Electrónico">
+                <span>✉️ Enviar por Correo</span>
+              </button>
+            </div>
+            <div class="cluster" style="gap: 0.35rem;">
+              <button type="button" id="btn-recibo-copy-text" class="button" data-variant="outlined" style="font-weight: 600; font-size: 0.74rem; padding: 0.25rem 0.65rem; height: 29px; display: inline-flex; align-items: center; gap: 0.25rem;" title="Copiar texto formateado al portapapeles">
+                <span>📋 Copiar Texto</span>
+              </button>
+              <button type="button" id="btn-recibo-print" class="button" data-variant="outlined" style="font-weight: 600; font-size: 0.74rem; padding: 0.25rem 0.65rem; height: 29px; display: inline-flex; align-items: center; gap: 0.25rem;" title="Imprimir comprobante físico o guardar como PDF">
+                <span>🖨️ Imprimir Recibo</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pie del Modal -->
+        <footer class="cluster modal-footer" data-justify="end" data-align="center" style="margin-top: 0.25rem; padding-top: 0.3rem; border-top: 1px solid rgba(125, 125, 125, 0.15);">
+          <button type="button" class="button btn-close-recibo-modal" data-variant="ghost" style="font-size: 0.78rem; padding: 0.25rem 0.75rem; height: 30px;">
+            Cerrar Recibo
+          </button>
+        </footer>
+
+      </div>
+    </dialog>
+  `;
+}
+

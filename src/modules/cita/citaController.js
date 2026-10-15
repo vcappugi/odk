@@ -16,6 +16,7 @@ import { notificationService } from '../../services/notificationService.js';
 import { permissionService } from '../../services/permissionService.js';
 import { historialController } from '../historial/historialController.js';
 import { odontogramaController } from '../odontograma/odontogramaController.js';
+import { reciboService } from './reciboService.js';
 import { $ } from '../../utils/dom.js';
 
 export const citaController = {
@@ -29,6 +30,7 @@ export const citaController = {
   init() {
     this.bindEvents();
     this.subscribeToPatientChanges();
+    reciboService.initEvents();
   },
 
   /**
@@ -155,6 +157,24 @@ export const citaController = {
         e.preventDefault();
         const cobroId = delBtn.dataset.id;
         if (cobroId) await this.deleteCobro(cobroId);
+      }
+    });
+
+    // 4e. Botón Recibo de Pago individual en la lista de cobros
+    document.addEventListener('click', async (e) => {
+      const reciboBtn = e.target.closest('.btn-recibo-cobro');
+      if (reciboBtn) {
+        e.preventDefault();
+        const cobroId = reciboBtn.dataset.id;
+        await this.openRecibo(cobroId);
+      }
+    });
+
+    // 4f. Botón Generar Recibo de Pago General / Consolidado desde el modal de cobro
+    document.addEventListener('click', async (e) => {
+      if (e.target.closest('.btn-generar-recibo')) {
+        e.preventDefault();
+        await this.openRecibo(null);
       }
     });
 
@@ -713,6 +733,9 @@ export const citaController = {
             ${cobro.referencia ? `<span class="badge" data-paint="neutral" style="font-size: 0.66rem; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${cobro.referencia}">Ref: ${cobro.referencia}</span>` : ''}
           </div>
           <div class="cluster" style="gap: 0.25rem; flex-shrink: 0;">
+            <button type="button" class="button btn-recibo-cobro" data-id="${cobro.id}" data-variant="ghost" data-size="sm" style="font-size: 0.68rem; padding: 1px 6px; height: 22px; color: #0284c7; font-weight: 700;" title="Generar recibo de este pago para WhatsApp, Correo o Impresión">
+              🧾 Recibo
+            </button>
             <button type="button" class="button btn-edit-cobro" data-id="${cobro.id}" data-variant="ghost" data-size="sm" style="font-size: 0.68rem; padding: 1px 6px; height: 22px;" title="Editar este pago">
               ✏️ Editar
             </button>
@@ -868,6 +891,45 @@ export const citaController = {
       dialog.close();
     }
     this.editingCobroId = null;
+  },
+
+  /**
+   * Abre la ventana modal para generar, enviar por WhatsApp/Correo o imprimir el recibo de pago
+   * @param {number|string|null} cobroId - ID del cobro individual o null para consolidado
+   */
+  async openRecibo(cobroId = null) {
+    if (!this.currentCobros || this.currentCobros.length === 0) {
+      notificationService.warning('Primero debe registrar al menos un cobro para poder emitir el recibo de pago.');
+      return;
+    }
+
+    let cita = this.activeCitaData;
+    if (!cita && this.activeCitaId) {
+      cita = await citaModel.getById(this.activeCitaId);
+      this.activeCitaData = cita;
+    }
+
+    let paciente = cita?.paciente;
+    if (!paciente && cita?.paciente_id) {
+      try {
+        paciente = await patientModel.getById(cita.paciente_id);
+      } catch (err) {
+        console.warn('[CitaController] Error obteniendo paciente para recibo:', err);
+      }
+    }
+
+    const consultorio = consultorioModel.getActiveConsultorio()
+      || authModel.getActiveConsultorio()
+      || authModel.getCurrentUser()?.consultorio;
+
+    await reciboService.openReciboModal({
+      cita,
+      cobroId,
+      allCobros: this.currentCobros,
+      paciente,
+      doctor: cita?.doctor,
+      consultorio
+    });
   },
 
   /**
