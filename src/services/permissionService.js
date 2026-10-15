@@ -154,13 +154,25 @@ class PermissionService {
   }
 
   /**
+   * Obtiene la clave efectiva para normalizar alias de vistas (ej. admin-section-roles -> admin-section-user-roles)
+   * @param {string} idVista 
+   * @returns {string}
+   */
+  getEffectiveKey(idVista) {
+    if (!idVista) return '';
+    if (idVista === 'admin-section-roles') return 'admin-section-user-roles';
+    return idVista;
+  }
+
+  /**
    * Verifica si el usuario tiene permiso de LECTURA/VISUALIZACIÓN sobre un objeto
    * @param {string} idVista 
    * @returns {boolean}
    */
   canRead(idVista) {
     if (!idVista) return false;
-    const perm = this.permissions[idVista];
+    const key = this.getEffectiveKey(idVista);
+    const perm = this.permissions[key] || this.permissions[idVista] || (key === 'admin-section-user-roles' ? this.permissions['admin-section-roles'] : null);
     if (!perm) {
       // Si aún no se cargaron permisos, verificar si es admin
       const current = authModel.getCurrentUser();
@@ -176,7 +188,8 @@ class PermissionService {
    */
   canWrite(idVista) {
     if (!idVista) return false;
-    const perm = this.permissions[idVista];
+    const key = this.getEffectiveKey(idVista);
+    const perm = this.permissions[key] || this.permissions[idVista] || (key === 'admin-section-user-roles' ? this.permissions['admin-section-roles'] : null);
     if (!perm) {
       const current = authModel.getCurrentUser();
       return Boolean(current?.isAdmin);
@@ -191,7 +204,8 @@ class PermissionService {
    */
   isActive(idVista) {
     if (!idVista) return false;
-    const perm = this.permissions[idVista];
+    const key = this.getEffectiveKey(idVista);
+    const perm = this.permissions[key] || this.permissions[idVista] || (key === 'admin-section-user-roles' ? this.permissions['admin-section-roles'] : null);
     if (!perm) {
       const current = authModel.getCurrentUser();
       return Boolean(current?.isAdmin);
@@ -328,17 +342,31 @@ class PermissionService {
       btnSubmitUser.style.display = canWriteUsers ? 'inline-flex' : 'none';
     }
 
-    // d. Roles y Permisos ('admin-section-user-roles')
+    // d. Roles y Permisos ('admin-section-user-roles' / 'admin-section-roles')
     const canRoles = this.canRead('admin-section-user-roles');
     const canWriteRoles = this.canWrite('admin-section-user-roles');
     const navRoles = $('#admin-nav-roles');
     const cardRoles = $('#btn-admin-open-roles');
     if (navRoles) navRoles.style.display = canRoles ? 'inline-flex' : 'none';
     if (cardRoles) cardRoles.style.display = canRoles ? 'block' : 'none';
+
+    // Controles de creación / edición de roles
+    const btnNewRole = $('#btn-admin-scroll-new-role');
+    if (btnNewRole) btnNewRole.style.display = canWriteRoles ? 'inline-flex' : 'none';
+    const formRole = $('#form-admin-role');
+    if (formRole) formRole.style.display = canWriteRoles ? 'block' : 'none';
     const btnSubmitRole = $('#btn-submit-role-admin');
     if (btnSubmitRole) {
       btnSubmitRole.style.display = canWriteRoles ? 'inline-flex' : 'none';
     }
+
+    // Controles de asignación de permisos
+    const saveRolePermsBtn = $('#btn-save-role-perms');
+    if (saveRolePermsBtn) saveRolePermsBtn.style.display = canWriteRoles ? 'inline-flex' : 'none';
+    const permsQuickActions = $('#perms-quick-actions');
+    if (permsQuickActions) permsQuickActions.style.display = canWriteRoles ? 'inline-flex' : 'none';
+    const permsSaveContainer = $('#perms-save-container');
+    if (permsSaveContainer) permsSaveContainer.style.display = canWriteRoles ? 'flex' : 'none';
     // e. Tasas de Cambio ('admin-section-tasa')
     const canTasa = this.canRead('admin-section-tasa');
     const canWriteTasa = this.canWrite('admin-section-tasa');

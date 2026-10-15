@@ -322,6 +322,7 @@ export const adminController = {
 
     this.switchSection('hub');
     this.loadConsultoriosDoctorSelect();
+    permissionService.applyAdminSectionsPermissions();
 
     if (typeof dialog.showModal === 'function') {
       dialog.showModal();
@@ -981,6 +982,7 @@ export const adminController = {
                 >
                   ✏️
                 </button>
+                ${(permissionService.canWrite('admin-section-user-roles') || permissionService.canWrite('admin-section-roles') || authModel.getCurrentUser()?.isAdmin) ? `
                 <button 
                   type="button" 
                   class="button btn-toggle-admin-role" 
@@ -994,6 +996,7 @@ export const adminController = {
                 >
                   ${isAdmin ? 'Quitar Admin' : 'Hacer Admin'}
                 </button>
+                ` : ''}
                 <button 
                   type="button" 
                   class="button btn-del-user-admin" 
@@ -1203,6 +1206,14 @@ export const adminController = {
    * Asigna o remueve rol de admin en user_roles
    */
   async handleToggleAdminRole(userId, makeAdmin) {
+    const canWriteRoles = permissionService.canWrite('admin-section-user-roles') || permissionService.canWrite('admin-section-roles');
+    const currentUser = authModel.getCurrentUser();
+    const isSystemAdmin = currentUser?.isAdmin || Number(currentUser?.role_id) === 1;
+    if (!canWriteRoles && !isSystemAdmin) {
+      notificationService.error('Operación denegada: Tu rol no tiene permisos para asignar o modificar roles de administrador.');
+      return;
+    }
+
     try {
       await adminModel.setAdminRole(userId, makeAdmin);
       notificationService.success(makeAdmin ? 'Rol de administrador asignado en user_roles.' : 'Rol de administrador removido.');
@@ -1238,9 +1249,16 @@ export const adminController = {
 
     try {
       const roles = await adminModel.getRoles();
+      const canWriteRoles = permissionService.canWrite('admin-section-user-roles') || permissionService.canWrite('admin-section-roles');
+
+      // Controlar visibilidad del formulario de roles según permisos de escritura
+      const btnNewRole = $('#btn-admin-scroll-new-role');
+      if (btnNewRole) btnNewRole.style.display = canWriteRoles ? 'inline-flex' : 'none';
+      const formRole = $('#form-admin-role');
+      if (formRole) formRole.style.display = canWriteRoles ? 'block' : 'none';
 
       if (countBadge) {
-        countBadge.textContent = `${roles.length} rol(es) registrado(s)`;
+        countBadge.textContent = `${roles.length} rol(es) registrado(s)${!canWriteRoles ? ' [Solo Lectura]' : ''}`;
       }
 
       if (!roles || roles.length === 0) {
@@ -1286,11 +1304,13 @@ export const adminController = {
                   data-role-id="${r.id}" 
                   data-role-name="${r.nombre}" 
                   data-size="sm" 
-                  data-paint="primary" 
-                  title="Gestionar permisos en roles_permision"
+                  data-paint="${canWriteRoles ? 'primary' : 'neutral'}" 
+                  data-variant="${canWriteRoles ? '' : 'ghost'}"
+                  title="${canWriteRoles ? 'Gestionar permisos en roles_permision' : 'Ver permisos asignados (Solo lectura)'}"
                 >
-                  🔑 Permisos
+                  ${canWriteRoles ? '🔑 Permisos' : '👁️ Ver Permisos'}
                 </button>
+                ${canWriteRoles ? `
                 <button 
                   type="button" 
                   class="button btn-edit-role-admin" 
@@ -1301,7 +1321,8 @@ export const adminController = {
                 >
                   ✏️
                 </button>
-                ${!isSystemAdmin ? `
+                ` : ''}
+                ${canWriteRoles && !isSystemAdmin ? `
                   <button 
                     type="button" 
                     class="button btn-del-role-admin" 
@@ -1335,6 +1356,12 @@ export const adminController = {
    * Guarda o actualiza un rol
    */
   async handleSaveRole() {
+    const canWriteRoles = permissionService.canWrite('admin-section-user-roles') || permissionService.canWrite('admin-section-roles');
+    if (!canWriteRoles) {
+      notificationService.error('Operación denegada: Tu rol no tiene permisos para crear o modificar roles.');
+      return;
+    }
+
     const id = $('#admin-role-id')?.value;
     const nameInput = $('#admin-role-name');
     const typeInput = $('#admin-role-type');
@@ -1382,6 +1409,12 @@ export const adminController = {
    * Carga los datos de un rol en el formulario para editar
    */
   async handleEditRole(roleId) {
+    const canWriteRoles = permissionService.canWrite('admin-section-user-roles') || permissionService.canWrite('admin-section-roles');
+    if (!canWriteRoles) {
+      notificationService.error('Operación denegada: Tu rol no tiene permisos para editar roles.');
+      return;
+    }
+
     try {
       const role = await adminModel.getRoleById(roleId);
       if (!role) {
@@ -1430,6 +1463,12 @@ export const adminController = {
    * Elimina un rol
    */
   async handleDeleteRole(roleId, roleName) {
+    const canWriteRoles = permissionService.canWrite('admin-section-user-roles') || permissionService.canWrite('admin-section-roles');
+    if (!canWriteRoles) {
+      notificationService.error('Operación denegada: Tu rol no tiene permisos para eliminar roles.');
+      return;
+    }
+
     try {
       await adminModel.deleteRole(roleId);
       notificationService.success(`Rol "${roleName}" eliminado correctamente.`);
@@ -1472,10 +1511,38 @@ export const adminController = {
     panel.scrollIntoView({ behavior: 'smooth' });
 
     try {
+      const canWriteRoles = permissionService.canWrite('admin-section-user-roles') || permissionService.canWrite('admin-section-roles');
       const role = await adminModel.getRoleById(roleId);
       if (titleBadge && role) {
-        titleBadge.textContent = `${role.nombre.toUpperCase()} (#${role.id})`;
+        titleBadge.textContent = `${role.nombre.toUpperCase()} (#${role.id})${!canWriteRoles ? ' — [SOLO LECTURA]' : ''}`;
       }
+
+      // Notificación visual de solo lectura si no tiene permiso de escritura
+      const notice = $('#perms-readonly-notice');
+      if (notice) {
+        if (!canWriteRoles) {
+          const current = authModel.getCurrentUser();
+          const rName = current?.role_name || current?.rol || 'actual';
+          notice.innerHTML = `
+            <div class="box cluster" data-paint="warning" style="padding: 0.65rem 0.85rem; font-size: 0.82rem; border-radius: 6px; background: rgba(245, 158, 11, 0.12); color: #d97706; margin-bottom: 0.65rem; align-items: center; gap: 0.5rem; border: 1px solid rgba(245, 158, 11, 0.25);">
+              <span style="font-size: 1.2rem;">🔒</span>
+              <div>
+                <strong>Modo Solo Lectura:</strong> Tu rol actual (<em>${rName}</em>) no tiene permisos de escritura para modificar o asignar permisos a roles. Los controles están bloqueados.
+              </div>
+            </div>
+          `;
+          notice.style.display = 'block';
+        } else {
+          notice.innerHTML = '';
+          notice.style.display = 'none';
+        }
+      }
+
+      // Ajustar visibilidad de botones rápidos y guardado
+      const quickActions = $('#perms-quick-actions');
+      if (quickActions) quickActions.style.display = canWriteRoles ? 'inline-flex' : 'none';
+      const saveContainer = $('#perms-save-container');
+      if (saveContainer) saveContainer.style.display = canWriteRoles ? 'flex' : 'none';
 
       const permissions = await adminModel.getPermissionsByRoleId(roleId);
 
@@ -1506,8 +1573,9 @@ export const adminController = {
               class="perm-chk-leer" 
               data-obj-id="${p.objeto_id}" 
               ${p.leer ? 'checked' : ''} 
-              style="width: 17px; height: 17px; cursor: pointer;"
-              title="Permiso de lectura/visualización"
+              ${!canWriteRoles ? 'disabled' : ''}
+              style="width: 17px; height: 17px; cursor: ${canWriteRoles ? 'pointer' : 'not-allowed'};"
+              title="${canWriteRoles ? 'Permiso de lectura/visualización' : 'Solo lectura (deshabilitado)'}"
             />
           </td>
           <td style="padding: 0.5rem 0.85rem; text-align: center;">
@@ -1516,8 +1584,9 @@ export const adminController = {
               class="perm-chk-escribir" 
               data-obj-id="${p.objeto_id}" 
               ${p.escribir ? 'checked' : ''} 
-              style="width: 17px; height: 17px; cursor: pointer;"
-              title="Permiso de escritura/creación/edición"
+              ${!canWriteRoles ? 'disabled' : ''}
+              style="width: 17px; height: 17px; cursor: ${canWriteRoles ? 'pointer' : 'not-allowed'};"
+              title="${canWriteRoles ? 'Permiso de escritura/creación/edición' : 'Solo lectura (deshabilitado)'}"
             />
           </td>
           <td style="padding: 0.5rem 0.85rem; text-align: center;">
@@ -1526,8 +1595,9 @@ export const adminController = {
               class="perm-chk-activo" 
               data-obj-id="${p.objeto_id}" 
               ${p.activo ? 'checked' : ''} 
-              style="width: 17px; height: 17px; cursor: pointer;"
-              title="Habilitado para este rol"
+              ${!canWriteRoles ? 'disabled' : ''}
+              style="width: 17px; height: 17px; cursor: ${canWriteRoles ? 'pointer' : 'not-allowed'};"
+              title="${canWriteRoles ? 'Habilitado para este rol' : 'Solo lectura (deshabilitado)'}"
             />
           </td>
         </tr>
@@ -1547,6 +1617,12 @@ export const adminController = {
    * Guarda los permisos configurados en la tabla 'roles_permision'
    */
   async handleSaveRolePermissions() {
+    const canWriteRoles = permissionService.canWrite('admin-section-user-roles') || permissionService.canWrite('admin-section-roles');
+    if (!canWriteRoles) {
+      notificationService.error('Operación denegada: Tu rol no tiene permisos para modificar la asignación de permisos por roles.');
+      return;
+    }
+
     if (!this.activePermissionsRoleId) {
       notificationService.error('No hay un rol activo seleccionado.');
       return;
@@ -1611,6 +1687,12 @@ export const adminController = {
    * Establece el estado de todos los checkboxes en la matriz de permisos
    */
   setAllPermissionsState({ leer, escribir, activo }) {
+    const canWriteRoles = permissionService.canWrite('admin-section-user-roles') || permissionService.canWrite('admin-section-roles');
+    if (!canWriteRoles) {
+      notificationService.error('Operación denegada: Tu rol no tiene permisos para modificar la asignación de permisos por roles.');
+      return;
+    }
+
     const leerChks = document.querySelectorAll('#admin-perms-table-body .perm-chk-leer');
     const escribirChks = document.querySelectorAll('#admin-perms-table-body .perm-chk-escribir');
     const activoChks = document.querySelectorAll('#admin-perms-table-body .perm-chk-activo');

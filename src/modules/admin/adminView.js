@@ -114,6 +114,9 @@ export function renderAdminConfigModal() {
                     Administrar la tabla roles y asignar permisos de lectura/escritura en roles_permision sobre los objetos del sistema.
                   </p>
                 </div>
+                <div class="feature-card-arrow">➜</div>
+              </button>
+
               <!-- Botón 5: Tasas de Cambio (BCV USD) -->
               <button type="button" id="btn-admin-open-tasa" class="admin-feature-card box" data-surface="sunken" data-border>
                 <div class="feature-card-icon-wrap" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
@@ -505,9 +508,12 @@ export function renderAdminConfigModal() {
                 </button>
               </div>
 
+              <!-- Contenedor para alerta de Solo Lectura -->
+              <div id="perms-readonly-notice" style="display: none;"></div>
+
               <!-- Barra de Acciones Rápidas y Filtro de Objetos -->
               <div class="cluster" data-justify="between" data-align="center" style="margin-top: 0.25rem;">
-                <div class="cluster" data-gap="2xs" data-align="center">
+                <div id="perms-quick-actions" class="cluster" data-gap="2xs" data-align="center">
                   <button type="button" id="btn-perms-grant-all" class="button" data-variant="outlined" data-size="sm" title="Marcar lectura y escritura para todos los objetos">
                     ⚡ Conceder Todo
                   </button>
@@ -542,7 +548,7 @@ export function renderAdminConfigModal() {
                 </table>
               </div>
 
-              <div class="cluster" data-justify="between" data-align="center" style="margin-top: 0.4rem; padding-top: 0.5rem; border-top: 1px solid rgba(125,125,125,0.15);">
+              <div id="perms-save-container" class="cluster" data-justify="between" data-align="center" style="margin-top: 0.4rem; padding-top: 0.5rem; border-top: 1px solid rgba(125,125,125,0.15);">
                 <small style="opacity: 0.75; font-size: 0.75rem;">
                   💾 Al guardar, los cambios se sincronizan en la tabla <code>roles_permision</code> en Supabase.
                 </small>

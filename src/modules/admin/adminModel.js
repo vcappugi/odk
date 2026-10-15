@@ -8,8 +8,24 @@ import bcrypt from 'bcryptjs';
 import { getSupabase, getConnectionStatus } from '../../services/supabaseClient.js';
 import { authModel } from '../auth/authModel.js';
 import { consultorioModel } from '../consultorio/consultorioModel.js';
+import { permissionService } from '../../services/permissionService.js';
 
 export const adminModel = {
+  /**
+   * Valida si el usuario actual tiene permisos para modificar roles y permisos
+   * @throws {Error} si no tiene permisos
+   */
+  assertCanWriteRoles() {
+    const current = authModel.getCurrentUser();
+    const isSystemAdmin = Boolean(current?.isAdmin || current?.rol === 'admin' || Number(current?.role_id) === 1);
+    if (isSystemAdmin) return;
+
+    const canWrite = permissionService.canWrite('admin-section-user-roles') || permissionService.canWrite('admin-section-roles');
+    if (!canWrite) {
+      throw new Error('Operación denegada: Tu rol no tiene permisos de escritura para gestionar roles o asignar permisos.');
+    }
+  },
+
   /**
    * Verifica si un usuario específico tiene el rol 'admin' en la tabla 'user_roles'
    * @param {number|string} userId - ID del usuario en la tabla 'usuario'
@@ -457,6 +473,7 @@ export const adminModel = {
    * @param {boolean} makeAdmin
    */
   async setAdminRole(userId, makeAdmin) {
+    this.assertCanWriteRoles();
     if (makeAdmin) {
       return this.assignUserRole(userId, 1);
     }
@@ -843,6 +860,7 @@ export const adminModel = {
    * @param {Object} roleData
    */
   async createRole({ nombre, tipo, activo = true }) {
+    this.assertCanWriteRoles();
     const supabase = getSupabase();
     if (!supabase) throw new Error('Cliente Supabase no disponible.');
 
@@ -886,6 +904,7 @@ export const adminModel = {
    * @param {Object} roleData
    */
   async updateRole(roleId, { nombre, tipo, activo = true }) {
+    this.assertCanWriteRoles();
     const supabase = getSupabase();
     if (!supabase) throw new Error('Cliente Supabase no disponible.');
 
@@ -919,6 +938,7 @@ export const adminModel = {
    * @param {number} roleId
    */
   async deleteRole(roleId) {
+    this.assertCanWriteRoles();
     const supabase = getSupabase();
     if (!supabase) throw new Error('Cliente Supabase no disponible.');
 
@@ -1014,6 +1034,7 @@ export const adminModel = {
    * @param {Array} permissionsList - Lista de { objeto_id, leer, escribir, activo }
    */
   async saveRolePermissions(roleId, permissionsList) {
+    this.assertCanWriteRoles();
     const supabase = getSupabase();
     if (!supabase) throw new Error('Cliente Supabase no disponible.');
 
