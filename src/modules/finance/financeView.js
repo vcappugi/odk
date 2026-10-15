@@ -42,6 +42,7 @@ export function renderFinanceSection() {
               📅 Periodo:
             </label>
             <select id="finance-filter-period" class="input input-compact finance-select" style="font-size: 0.78rem; height: 30px;">
+              <option value="today">El día de hoy (Hoy)</option>
               <option value="week" selected>Esta Semana</option>
               <option value="month">Este Mes</option>
               <option value="quarter">Últimos 3 Meses</option>
@@ -50,13 +51,13 @@ export function renderFinanceSection() {
             </select>
           </div>
 
-          <!-- Filtro de Consultorio / Sede -->
+          <!-- Filtro de Consultorio / Sede: Exclusivo de la sede de la sesión -->
           <div class="cluster" data-gap="3xs" data-align="center">
             <label for="finance-filter-consultorio" class="finance-filter-label" style="font-size: 0.75rem; font-weight: 600; opacity: 0.85;">
               🏥 Sede:
             </label>
-            <select id="finance-filter-consultorio" class="input input-compact finance-select" style="font-size: 0.78rem; height: 30px;">
-              <option value="">Todas las Sedes</option>
+            <select id="finance-filter-consultorio" class="input input-compact finance-select" disabled title="Filtro exclusivo para el consultorio de la sesión actual" style="font-size: 0.78rem; height: 30px; cursor: not-allowed; opacity: 0.95; background: rgba(255,255,255,0.06); font-weight: 600;">
+              <option value="" disabled selected>🔒 Cargando sede de la sesión...</option>
             </select>
           </div>
 
@@ -143,6 +144,19 @@ export function renderDashboardTab(metrics) {
     ? `<span class="badge" data-paint="success" style="font-size: 0.68rem; font-weight: 700;">↑ +${semana.percentChange}% vs anterior</span>`
     : `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; font-size: 0.68rem; font-weight: 700;">↓ ${semana.percentChange}% vs anterior</span>`;
 
+  // Etiqueta legible para el periodo seleccionado
+  const periodLabelMap = {
+    today: 'Hoy',
+    week: 'Semanal',
+    month: 'Mensual',
+    quarter: 'Trimestral',
+    year: 'Anual',
+    all: 'Histórico'
+  };
+  const periodLabel = periodLabelMap[metrics.period] || 'Periodo';
+  const rangeDisplay = metrics.period === 'today'
+    ? `Fecha: ${metrics.dateRange.start} (Hoy)`
+    : `Rango: ${metrics.dateRange.start} a ${metrics.dateRange.end}`;
   // Encontrar el día con mayor ingreso de la semana para escalar el gráfico de barras
   const maxDayUSD = Math.max(...semana.dias.map(d => d.totalUSD), 1);
 
@@ -177,7 +191,7 @@ export function renderDashboardTab(metrics) {
         <!-- KPI 2: Total Facturado en el Periodo Seleccionado -->
         <div class="finance-kpi-card box" data-surface="raised" data-border>
           <div class="cluster" data-justify="between" data-align="center">
-            <span class="finance-kpi-label">Facturación Total (${metrics.period === 'week' ? 'Semanal' : (metrics.period === 'month' ? 'Mensual' : 'Periodo')})</span>
+            <span class="finance-kpi-label">Facturación Total (${periodLabel})</span>
             <span class="finance-kpi-icon-badge" style="background: rgba(2, 132, 199, 0.15); color: #0284c7;">📊</span>
           </div>
           <div class="finance-kpi-values-wrap">
@@ -189,7 +203,7 @@ export function renderDashboardTab(metrics) {
             </span>
           </div>
           <div class="cluster" data-justify="between" data-align="center" style="margin-top: 0.25rem;">
-            <span class="badge" data-paint="neutral" style="font-size: 0.68rem;">Rango: ${metrics.dateRange.start} a ${metrics.dateRange.end}</span>
+            <span class="badge" data-paint="neutral" style="font-size: 0.68rem;">${rangeDisplay}</span>
             <span style="font-size: 0.72rem; opacity: 0.75;">${global.totalTransacciones} cobros</span>
           </div>
         </div>

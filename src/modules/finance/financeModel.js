@@ -92,8 +92,23 @@ export const financeModel = {
   },
 
   /**
+   * Helper para parsear fechas YYYY-MM-DD sin desajuste de zona horaria
+   */
+  parseDateAtNoon(dateStr) {
+    if (!dateStr || typeof dateStr !== 'string') return null;
+    const cleanStr = dateStr.substring(0, 10);
+    const parts = cleanStr.split('-');
+    if (parts.length !== 3) return null;
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+    return new Date(year, month, day, 12, 0, 0, 0);
+  },
+
+  /**
    * Obtiene las fechas de inicio y fin para un periodo dado
-   * @param {string} period 'week' | 'month' | 'quarter' | 'year' | 'all' | 'custom'
+   * @param {string} period 'today' | 'week' | 'month' | 'quarter' | 'year' | 'all' | 'custom'
    * @param {Object} customRange { start: string, end: string }
    */
   getDateRangeForPeriod(period = 'week', customRange = null) {
@@ -108,36 +123,32 @@ export const financeModel = {
       };
     }
 
-    if (period === 'week') {
+    if (period === 'today') {
+      // El día de hoy (desde las 00:00:00 hasta las 23:59:59.999 de hoy)
+      startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+      endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+    } else if (period === 'week') {
       // Semana actual (Lunes a Domingo)
       const dayOfWeek = today.getDay(); // 0 es Domingo
       const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-      startDate = new Date(today);
-      startDate.setDate(today.getDate() + diffToMonday);
-      startDate.setHours(0, 0, 0, 0);
-
-      endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + 6);
-      endDate.setHours(23, 59, 59, 999);
+      startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + diffToMonday, 0, 0, 0, 0);
+      endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 6, 23, 59, 59, 999);
     } else if (period === 'month') {
       // Mes actual (1ro al último día del mes)
       startDate = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0);
-      endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
+      endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
     } else if (period === 'quarter') {
       // Últimos 3 meses
-      startDate = new Date(today);
-      startDate.setMonth(today.getMonth() - 2);
-      startDate.setDate(1);
-      startDate.setHours(0, 0, 0, 0);
-      endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
+      startDate = new Date(today.getFullYear(), today.getMonth() - 2, 1, 0, 0, 0);
+      endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
     } else if (period === 'year') {
       // Todo el año en curso
       startDate = new Date(today.getFullYear(), 0, 1, 0, 0, 0);
-      endDate = new Date(today.getFullYear(), 11, 31, 23, 59, 59);
+      endDate = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999);
     } else {
       // 'all' o histórico completo
       startDate = new Date(2020, 0, 1, 0, 0, 0);
-      endDate = new Date(2035, 11, 31, 23, 59, 59);
+      endDate = new Date(2035, 11, 31, 23, 59, 59, 999);
     }
 
     return { start: startDate, end: endDate };
@@ -272,19 +283,19 @@ export const financeModel = {
     const filteredCobros = raw.cobros.filter(cobro => {
       const cita = citasMap.get(cobro.cita_id);
 
-      // Filtro por consultorio
-      if (consultorioId && cita) {
-        if (String(cita.consultorio_id) !== String(consultorioId)) return false;
+      // Filtro por consultorio: El cobro debe pertenecer a una cita de dicho consultorio
+      if (consultorioId) {
+        if (!cita || String(cita.consultorio_id) !== String(consultorioId)) return false;
       }
 
       // Filtro por doctor
-      if (doctorId && cita) {
-        if (String(cita.doctor_id) !== String(doctorId)) return false;
+      if (doctorId) {
+        if (!cita || String(cita.doctor_id) !== String(doctorId)) return false;
       }
 
       // Filtro por fecha (usar fecha_pago o fecha de creación)
-      const cobroDate = new Date((cobro.fecha_pago || cobro.created_at || '').substring(0, 10) + 'T12:00:00');
-      if (isNaN(cobroDate.getTime())) return true;
+      const cobroDate = this.parseDateAtNoon(cobro.fecha_pago || cobro.created_at);
+      if (!cobroDate) return period === 'all';
       return cobroDate >= start && cobroDate <= end;
     });
 
@@ -296,22 +307,22 @@ export const financeModel = {
       if (doctorId) {
         if (String(cita.doctor_id) !== String(doctorId)) return false;
       }
-      const citaDate = new Date((cita.fecha || '').substring(0, 10) + 'T12:00:00');
-      if (isNaN(citaDate.getTime())) return true;
+      const citaDate = this.parseDateAtNoon(cita.fecha);
+      if (!citaDate) return false;
       return citaDate >= start && citaDate <= end;
     });
 
     // 3. Filtrar Historial Médico
     const filteredHistorial = raw.historial.filter(h => {
       const cita = h.cita_id ? citasMap.get(h.cita_id) : null;
-      if (consultorioId && cita) {
-        if (String(cita.consultorio_id) !== String(consultorioId)) return false;
+      if (consultorioId) {
+        if (!cita || String(cita.consultorio_id) !== String(consultorioId)) return false;
       }
       if (doctorId) {
-        if (String(h.doctor_id) !== String(doctorId)) return false;
+        if (!h.doctor_id || String(h.doctor_id) !== String(doctorId)) return false;
       }
-      const hDate = new Date((h.fecha || h.created_at || '').substring(0, 10) + 'T12:00:00');
-      if (isNaN(hDate.getTime())) return true;
+      const hDate = this.parseDateAtNoon(h.fecha || h.created_at);
+      if (!hDate) return false;
       return hDate >= start && hDate <= end;
     });
 
@@ -355,12 +366,11 @@ export const financeModel = {
 
     raw.cobros.forEach(cobro => {
       const cita = citasMap.get(cobro.cita_id);
-      if (consultorioId && cita && String(cita.consultorio_id) !== String(consultorioId)) return;
-      if (doctorId && cita && String(cita.doctor_id) !== String(doctorId)) return;
+      if (consultorioId && (!cita || String(cita.consultorio_id) !== String(consultorioId))) return;
+      if (doctorId && (!cita || String(cita.doctor_id) !== String(doctorId))) return;
 
-      const dateStr = (cobro.fecha_pago || cobro.created_at || '').substring(0, 10);
-      const cDate = new Date(dateStr + 'T12:00:00');
-      if (isNaN(cDate.getTime())) return;
+      const cDate = this.parseDateAtNoon(cobro.fecha_pago || cobro.created_at);
+      if (!cDate) return;
 
       const usd = Number(cobro.monto_cobrado) || 0;
       const rate = Number(cobro.tasa_cambio) || 1;
@@ -411,12 +421,11 @@ export const financeModel = {
 
       raw.cobros.forEach(cobro => {
         const cita = citasMap.get(cobro.cita_id);
-        if (consultorioId && cita && String(cita.consultorio_id) !== String(consultorioId)) return;
-        if (doctorId && cita && String(cita.doctor_id) !== String(doctorId)) return;
+        if (consultorioId && (!cita || String(cita.consultorio_id) !== String(consultorioId))) return;
+        if (doctorId && (!cita || String(cita.doctor_id) !== String(doctorId))) return;
 
-        const dateStr = (cobro.fecha_pago || cobro.created_at || '').substring(0, 10);
-        const cDate = new Date(dateStr + 'T12:00:00');
-        if (isNaN(cDate.getTime())) return;
+        const cDate = this.parseDateAtNoon(cobro.fecha_pago || cobro.created_at);
+        if (!cDate) return;
 
         if (cDate >= wStart && cDate <= wEnd) {
           const usd = Number(cobro.monto_cobrado) || 0;
@@ -508,8 +517,8 @@ export const financeModel = {
     // Nuevos pacientes registrados en el periodo
     const nuevosPacientes = raw.pacientes.filter(p => {
       if (consultorioId && String(p.consultorio_id) !== String(consultorioId)) return false;
-      if (!p.created_at) return false;
-      const pDate = new Date(p.created_at.substring(0, 10) + 'T12:00:00');
+      const pDate = this.parseDateAtNoon(p.created_at);
+      if (!pDate) return false;
       return pDate >= start && pDate <= end;
     }).length;
 
@@ -643,11 +652,18 @@ export const financeModel = {
       };
     });
 
+    const formatDateYMD = (d) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     return {
       period,
       dateRange: {
-        start: start.toISOString().substring(0, 10),
-        end: end.toISOString().substring(0, 10)
+        start: formatDateYMD(start),
+        end: formatDateYMD(end)
       },
       consultorioId,
       doctorId,

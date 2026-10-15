@@ -12,6 +12,7 @@ import {
   renderDoctoresTab
 } from './financeView.js';
 import { consultorioModel } from '../consultorio/consultorioModel.js';
+import { authModel } from '../auth/authModel.js';
 import { notificationService } from '../../services/notificationService.js';
 import { calendarController } from '../calendar/calendarController.js';
 import { $, $$ } from '../../utils/dom.js';
@@ -26,6 +27,7 @@ export const financeController = {
    */
   init() {
     this.attachEventListeners();
+    this.syncConsultorioFilter();
   },
 
   /**
@@ -64,9 +66,9 @@ export const financeController = {
       }
     });
 
-    // 4. Cambio de filtros (Periodo y Sede)
+    // 4. Cambio de filtros (Periodo)
     document.addEventListener('change', async (e) => {
-      if (e.target.id === 'finance-filter-period' || e.target.id === 'finance-filter-consultorio') {
+      if (e.target.id === 'finance-filter-period') {
         await this.loadAndRender();
       }
     });
@@ -101,9 +103,11 @@ export const financeController = {
 
     // 8. Eventos del sistema para auto-refrescar si hay cambios
     window.addEventListener('auth:change', () => {
+      this.syncConsultorioFilter();
       if (this.isPanelOpen) this.loadAndRender();
     });
     window.addEventListener('consultorio:changed', () => {
+      this.syncConsultorioFilter();
       if (this.isPanelOpen) this.loadAndRender();
     });
     window.addEventListener('cobro:saved', () => {
@@ -217,14 +221,60 @@ export const financeController = {
   },
 
   /**
+   * Obtiene la sede o consultorio de la sesión activa del usuario
+   */
+  getLoggedInConsultorio() {
+    let sede = consultorioModel.getActiveConsultorio() || authModel.getActiveConsultorio();
+    if (!sede) {
+      const user = authModel.getCurrentUser();
+      if (user?.consultorio) {
+        sede = user.consultorio;
+      } else if (user?.consultorio_id) {
+        sede = {
+          id: user.consultorio_id,
+          nombre: user.consultorio_nombre || `Sede #${user.consultorio_id}`
+        };
+      }
+    }
+    return sede;
+  },
+
+  /**
+   * Sincroniza el selector para que ÚNICAMENTE muestre el consultorio por el que se logueó el usuario
+   */
+  syncConsultorioFilter(consultoriosList = []) {
+    const consultorioSelect = $('#finance-filter-consultorio');
+    if (!consultorioSelect) return;
+
+    let activeSede = this.getLoggedInConsultorio();
+    if (activeSede && activeSede.id) {
+      if (!activeSede.nombre || activeSede.nombre.includes('Sesión') || activeSede.nombre.startsWith('Sede #')) {
+        const match = consultoriosList.find(c => String(c.id) === String(activeSede.id));
+        if (match && match.nombre) {
+          activeSede.nombre = match.nombre;
+        }
+      }
+      consultorioSelect.innerHTML = `<option value="${activeSede.id}" selected>🔒 🏥 ${activeSede.nombre}</option>`;
+      consultorioSelect.title = `Filtro fijado al consultorio de la sesión: ${activeSede.nombre}`;
+    } else {
+      consultorioSelect.innerHTML = `<option value="" selected>🔒 🏥 Sede de la Sesión</option>`;
+      consultorioSelect.title = 'Filtro fijado al consultorio de la sesión actual';
+    }
+    consultorioSelect.disabled = true;
+  },
+
+  /**
    * Carga los datos de Supabase y renderiza todas las vistas del panel
    */
   async loadAndRender() {
     const periodSelect = $('#finance-filter-period');
-    const consultorioSelect = $('#finance-filter-consultorio');
-
     const period = periodSelect?.value || 'week';
-    const consultorioId = consultorioSelect?.value || null;
+
+    const activeSede = this.getLoggedInConsultorio();
+    const consultorioId = activeSede?.id || null;
+
+    // Asegurar que el selector muestre únicamente el consultorio de la sesión
+    this.syncConsultorioFilter();
 
     try {
       // Mostrar indicador de carga si está en dashboard
@@ -238,26 +288,16 @@ export const financeController = {
         `;
       }
 
-      // Obtener métricas consolidadas
+      // Obtener métricas consolidadas filtradas estrictamente por el consultorio de la sesión
       const metrics = await financeModel.getMetrics({
         period,
         consultorioId
       });
       this.currentMetrics = metrics;
 
-      // Actualizar opciones de consultorios en el selector si aún no se han poblado
-      if (consultorioSelect && consultorioSelect.options.length <= 1) {
-        const activeSede = consultorioModel.getActiveConsultorio();
-        consultorioSelect.innerHTML = '<option value="">Todas las Sedes</option>';
-        (metrics.consultorios || []).forEach(c => {
-          const opt = document.createElement('option');
-          opt.value = c.id;
-          opt.textContent = c.nombre;
-          if (activeSede && String(c.id) === String(activeSede.id)) {
-            opt.selected = true;
-          }
-          consultorioSelect.appendChild(opt);
-        });
+      // Si los consultorios vinieron de la BD, sincronizar nombre de sede en el selector
+      if (metrics.consultorios && metrics.consultorios.length > 0) {
+        this.syncConsultorioFilter(metrics.consultorios);
       }
 
       // Inyectar HTML en cada una de las 4 pestañas
