@@ -4281,6 +4281,7 @@ html[data-theme="dark"] .badge-status-atendida {
 @media print {
   .top-compact-header,
   .quick-actions-bar,
+  .weekly-birthday-banner-wrap,
   .finance-toolbar button,
   .finance-nav-tabs,
   #btn-finance-back-calendar {
@@ -4299,5 +4300,127 @@ html[data-theme="dark"] .badge-status-atendida {
     grid-template-columns: 1fr 1fr !important;
   }
 }
+
+/* ==========================================================================
+   BANNER DE CUMPLEAÑEROS DE LA SEMANA
+   ========================================================================== */
+.weekly-birthday-banner-wrap {
+  width: 100%;
+  margin-top: -0.25rem;
+  margin-bottom: 0.15rem;
+}
+
+.birthday-banner-card {
+  padding: 0.65rem 1rem !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(2, 132, 199, 0.08) 100%) !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.25s ease;
+}
+
+[data-theme="dark"] .birthday-banner-card {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(2, 132, 199, 0.12) 100%) !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+.birthday-banner-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.birthday-banner-icon-animated {
+  display: inline-block;
+  animation: tada-birthday 2.5s infinite ease-in-out;
+}
+
+@keyframes tada-birthday {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  10%, 20% { transform: scale(0.9) rotate(-3deg); }
+  30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); }
+  40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }
+}
+
+.birthday-banner-title {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #d97706;
+}
+
+[data-theme="dark"] .birthday-banner-title {
+  color: #fbbf24;
+}
+
+.birthday-chips-cluster {
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.birthday-patient-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  font-size: 0.8rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.birthday-patient-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .birthday-patient-chip {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.birthday-patient-chip.is-today {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%) !important;
+  border-color: #f59e0b !important;
+  border-width: 1.5px !important;
+  font-weight: 700;
+}
+
+.birthday-patient-name {
+  color: var(--primary, #0284c7);
+  font-size: 0.82rem;
+}
+
+.birthday-badge-day {
+  background: rgba(125, 125, 125, 0.12) !important;
+}
+
+.birthday-turning-age {
+  opacity: 0.8;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.btn-birthday-wa {
+  height: 22px !important;
+  padding: 0 7px !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  border-radius: 9999px !important;
+  background: #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3) !important;
+}
+
+.btn-birthday-wa:hover {
+  background: #059669 !important;
+  color: #ffffff !important;
+}
+
 
 

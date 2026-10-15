@@ -39,6 +39,7 @@ import { renderOdontogramaModal } from './modules/odontograma/odontogramaView.js
 import { odontogramaController } from './modules/odontograma/odontogramaController.js';
 import { renderFinanceSection } from './modules/finance/financeView.js';
 import { financeController } from './modules/finance/financeController.js';
+import { birthdayController } from './modules/patients/birthdayController.js';
 
 /**
  * Inicialización de la aplicación
@@ -100,6 +101,9 @@ async function bootstrapApp() {
       financeController.showCalendar();
     }
   });
+
+  // 14. Inicializar banner de cumpleañeros de la semana
+  birthdayController.init();
 
   console.log('✅ ODONTOKRIS inicializado con éxito.');
 }
@@ -231,7 +235,10 @@ function mountAppLayout() {
       </section>
 
       <!-- 3. VISTA PARA USUARIOS AUTENTICADOS: Barra de gestión y Calendario completo con filtros -->
-      <div id="authenticated-app-view" class="authenticated-app-view stack" data-gap="md" style="${isAuthenticated ? '' : 'display: none;'}">
+      <div id="authenticated-app-view" class="authenticated-app-view stack" data-gap="sm" style="${isAuthenticated ? '' : 'display: none;'}">
+        <!-- MENSAJE CON LOS CUMPLEAÑEROS DE LA SEMANA (Entre barra de cabecera y barra de botones) -->
+        <div id="weekly-birthday-banner" class="weekly-birthday-banner"></div>
+
         <!-- BARRA DE BOTONES DE ACCESO RÁPIDO (Espacio arriba del calendario) -->
         ${renderQuickActionsBar()}
 

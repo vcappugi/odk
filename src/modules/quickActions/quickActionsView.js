@@ -29,13 +29,7 @@ export function renderQuickActionsBar() {
             <span class="quick-btn-text">Ver Historial</span>
           </button>
 
-          <!-- 4. Reportes -->
-          <button type="button" id="btn-quick-reports" class="button btn-quick-action" data-variant="ghost" data-size="sm" title="Ver reportes y métricas odontológicas">
-            <span class="quick-btn-icon">📊</span>
-            <span class="quick-btn-text">Reportes</span>
-          </button>
-
-          <!-- 4b. Panel Financiero (Al lado izquierdo de Configuración) -->
+          <!-- 4. Panel Financiero (Al lado izquierdo de Configuración) -->
           <button type="button" id="btn-quick-finance" class="button btn-quick-action btn-finance-action" data-variant="ghost" data-size="sm" title="Panel Financiero: Dashboard Económico, Ingresos y Top Tratamientos">
             <span class="quick-btn-icon">📈</span>
             <span class="quick-btn-text">Panel Financiero</span>
