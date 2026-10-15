@@ -3691,6 +3691,18 @@ html[data-theme="dark"] .badge-status-atendida {
   border-color: rgba(16, 185, 129, 0.5) !important;
 }
 
+.badge-status-no-asistio {
+  background: rgba(239, 68, 68, 0.16) !important;
+  color: #dc2626 !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+}
+
+html[data-theme="dark"] .badge-status-no-asistio {
+  background: rgba(239, 68, 68, 0.22) !important;
+  color: #f87171 !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+}
+
 .chip-status-check {
   display: inline-block;
   color: #10b981;
@@ -3699,8 +3711,20 @@ html[data-theme="dark"] .badge-status-atendida {
   margin-right: 2px;
 }
 
+.chip-status-missed {
+  display: inline-block;
+  color: #ef4444;
+  font-weight: 800;
+  font-size: 0.72rem;
+  margin-right: 2px;
+}
+
 .cal-month-cita-chip.is-atendida {
   opacity: 0.92;
+}
+
+.cal-month-cita-chip.is-no-asistio {
+  opacity: 0.78;
 }
 
 /* Botón de Cobro de Citas */

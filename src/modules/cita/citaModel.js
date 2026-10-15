@@ -13,8 +13,28 @@ import { consultorioModel } from '../consultorio/consultorioModel.js';
  */
 export function isCitaAtendida(estatus) {
   if (estatus === true || estatus === 1 || estatus === '1' || estatus === 't' || estatus === 'true') return true;
-  if (typeof estatus === 'string' && estatus.trim().toLowerCase() === 'atendida') return true;
+  if (typeof estatus === 'string') {
+    const s = estatus.trim().toUpperCase();
+    return s === 'ATENDIDO' || s === 'ATENDIDA';
+  }
   return false;
+}
+
+/**
+ * Normaliza el valor de estatus a uno de los tres permitidos:
+ * "PENDIENTE", "ATENDIDO", "NO ASISTIO"
+ * @param {any} estatus
+ * @returns {'PENDIENTE'|'ATENDIDO'|'NO ASISTIO'}
+ */
+export function normalizeCitaEstatus(estatus) {
+  if (isCitaAtendida(estatus)) return 'ATENDIDO';
+  if (typeof estatus === 'string') {
+    const s = estatus.trim().toUpperCase();
+    if (s === 'NO ASISTIO' || s === 'NO ASISTIÓ' || s === 'NO_ASISTIO' || s === 'CANCELADA') {
+      return 'NO ASISTIO';
+    }
+  }
+  return 'PENDIENTE';
 }
 
 export const citaModel = {

@@ -109,11 +109,12 @@ export function renderCitaModal() {
               <div class="field">
                 <label for="cita-estatus" class="label" style="margin-bottom: 0.15rem; font-size: 0.78rem;">Estatus de la Cita *</label>
                 <select id="cita-estatus" class="input select" required>
-                  <option value="false" selected>🟡 Pendiente (Por atender)</option>
-                  <option value="true">🟢 Atendida (Realizada)</option>
+                  <option value="PENDIENTE" selected>🟡 PENDIENTE</option>
+                  <option value="ATENDIDO">🟢 ATENDIDO</option>
+                  <option value="NO ASISTIO">🔴 NO ASISTIO</option>
                 </select>
                 <small id="cita-estatus-hint" style="font-size: 0.67rem; opacity: 0.75; display: block; margin-top: 1px; line-height: 1.1;">
-                  Al guardar como Atendida se bloqueará la cita y se habilitará el cobro.
+                  Al guardar en estatus ATENDIDO se bloqueará la cita y se habilitará el cobro.
                 </small>
               </div>
             </div>

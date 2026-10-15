@@ -4,7 +4,7 @@
  * así como el bloqueo de campos y registro de cobros en cobro_cita con tasa del día.
  */
 
-import { citaModel, isCitaAtendida } from './citaModel.js';
+import { citaModel, isCitaAtendida, normalizeCitaEstatus } from './citaModel.js';
 import { cobroModel } from './cobroModel.js';
 import { tasaCambioModel } from '../tasaCambio/tasaCambioModel.js';
 import { patientModel } from '../patients/patientModel.js';
@@ -82,8 +82,9 @@ export const citaController = {
     // 3c. Cambio dinámico en el Estatus de la Cita -> activar/inactivar campos y botón de cobro
     document.addEventListener('change', async (e) => {
       if (e.target && e.target.id === 'cita-estatus') {
-        const isRealizada = e.target.value === 'true';
-        await this.applyEstatusState(isRealizada, this.currentCobros || this.currentCobro);
+        const val = normalizeCitaEstatus(e.target.value);
+        const isRealizada = isCitaAtendida(val);
+        await this.applyEstatusState(isRealizada, this.currentCobros || this.currentCobro, val);
       }
     });
 
@@ -201,17 +202,20 @@ export const citaController = {
       if (changedCitaId && this.activeCitaId && Number(changedCitaId) === Number(this.activeCitaId)) {
         this.currentCobros = await cobroModel.getAllByCitaId(this.activeCitaId);
         this.currentCobro = this.currentCobros.length > 0 ? this.currentCobros[0] : null;
-        await this.applyEstatusState(isCitaAtendida(this.activeCitaData?.estatus), this.currentCobros);
+        const normStatus = normalizeCitaEstatus(this.activeCitaData?.estatus);
+        await this.applyEstatusState(isCitaAtendida(normStatus), this.currentCobros, normStatus);
       }
     });
   },
 
   /**
-   * Aplica el estado de bloqueo a los campos cuando la cita es Realizada, y activa el botón de cobro
+   * Aplica el estado de bloqueo a los campos cuando la cita está en estatus ATENDIDO,
+   * y muestra/oculta el botón de cobro de acuerdo al estatus
    * @param {boolean} isRealizada
    * @param {Object|null} existingCobro
+   * @param {string|null} currentStatusVal
    */
-  async applyEstatusState(isRealizada, existingCobro = null) {
+  async applyEstatusState(isRealizada, existingCobro = null, currentStatusVal = null) {
     const banner = $('#cita-realizada-banner');
     const bannerTitle = $('#cita-banner-title');
     const bannerText = $('#cita-banner-text');
@@ -236,6 +240,7 @@ export const citaController = {
 
     const canWrite = permissionService.canWrite('modal-cita');
     const isAlreadyAtendida = isCitaAtendida(this.activeCitaData?.estatus);
+    const selectedStatus = currentStatusVal || estatusSelect?.value || (isAlreadyAtendida ? 'ATENDIDO' : 'PENDIENTE');
 
     if (isRealizada) {
       // INACTIVAR CAMPOS DE LA VENTANA DE CITA
@@ -256,7 +261,7 @@ export const citaController = {
         btnAddPatientIcon.disabled = true;
       }
 
-      // SI LA CITA YA ESTABA EN ESTATUS ATENDIDA (PERSISTIDA EN BD):
+      // SI LA CITA YA ESTABA EN ESTATUS ATENDIDO (PERSISTIDA EN BD):
       // No podrá ser alterada ni eliminada
       if (isAlreadyAtendida) {
         if (estatusSelect) {
@@ -277,32 +282,37 @@ export const citaController = {
 
         if (banner) {
           banner.style.display = 'block';
+          banner.style.background = 'rgba(16, 185, 129, 0.12)';
+          banner.style.borderColor = 'rgba(16, 185, 129, 0.35)';
           if (bannerIcon) bannerIcon.textContent = '🔒';
-          if (bannerTitle) bannerTitle.textContent = 'Cita Atendida (Finalizada)';
-          if (bannerText) bannerText.innerHTML = 'Esta consulta ya fue atendida: <strong>no puede ser alterada ni eliminada</strong>. Utilice el botón <strong>Cobro</strong> para registrar o verificar la liquidación.';
+          if (bannerTitle) bannerTitle.textContent = 'Cita en Estatus ATENDIDO (Bloqueada)';
+          if (bannerText) bannerText.innerHTML = 'Esta consulta está en estatus <strong>ATENDIDO</strong> y <strong>no puede ser modificada ni eliminada</strong>. Utilice el botón <strong>Cobro</strong> para registrar o verificar la liquidación.';
         }
       } else {
-        // La cita estaba Pendiente y el usuario está seleccionando Atendida para guardarla
+        // La cita estaba en otro estatus y el usuario está seleccionando ATENDIDO para guardarla
         if (estatusSelect) {
           estatusSelect.disabled = !canWrite;
           estatusSelect.style.cursor = '';
           estatusSelect.style.opacity = '';
         }
 
-        // Ocultar botón eliminar mientras esté en transición a Atendida
+        // Ocultar botón eliminar mientras esté en transición a ATENDIDO
         if (delBtn) delBtn.style.display = 'none';
 
-        // Permitir guardar para registrar la cita como Atendida
+        // Permitir guardar para registrar la cita como ATENDIDO
         if (submitBtn && canWrite) {
           submitBtn.style.display = 'inline-flex';
-          submitBtn.textContent = '💾 Marcar como Atendida';
+          submitBtn.disabled = false;
+          submitBtn.textContent = '💾 Guardar como ATENDIDO';
         }
 
         if (banner) {
           banner.style.display = 'block';
+          banner.style.background = 'rgba(16, 185, 129, 0.12)';
+          banner.style.borderColor = 'rgba(16, 185, 129, 0.35)';
           if (bannerIcon) bannerIcon.textContent = '🟢';
-          if (bannerTitle) bannerTitle.textContent = 'Marcar como Atendida';
-          if (bannerText) bannerText.innerHTML = 'Al guardar, la cita quedará registrada como <strong>Atendida</strong> y no podrá ser alterada ni eliminada.';
+          if (bannerTitle) bannerTitle.textContent = 'Estatus seleccionado: ATENDIDO';
+          if (bannerText) bannerText.innerHTML = 'Al guardar, la cita quedará registrada como <strong>ATENDIDO</strong> y quedará permanentemente bloqueada para modificaciones.';
         }
       }
 
@@ -327,7 +337,7 @@ export const citaController = {
       }
 
     } else {
-      // HABILITAR CAMPOS (Cita Pendiente)
+      // HABILITAR CAMPOS (Cita Pendiente o No Asistió)
       fieldsToLock.forEach(field => {
         if (field) {
           field.disabled = !canWrite;
@@ -354,20 +364,35 @@ export const citaController = {
         btnAddPatientIcon.style.cursor = canWrite ? 'pointer' : 'not-allowed';
         btnAddPatientIcon.style.opacity = canWrite ? '1' : '0.6';
       }
-      if (banner) banner.style.display = 'none';
+
+      // Mostrar banner informativo específico si es NO ASISTIO
+      if (selectedStatus === 'NO ASISTIO') {
+        if (banner) {
+          banner.style.display = 'block';
+          banner.style.background = 'rgba(239, 68, 68, 0.12)';
+          banner.style.borderColor = 'rgba(239, 68, 68, 0.35)';
+          if (bannerIcon) bannerIcon.textContent = '🔴';
+          if (bannerTitle) bannerTitle.textContent = 'Estatus: NO ASISTIO';
+          if (bannerText) bannerText.innerHTML = 'El paciente no se presentó a su cita programada.';
+        }
+      } else {
+        if (banner) banner.style.display = 'none';
+      }
 
       // Mostrar botón eliminar si la cita existe y no está atendida
       if (delBtn) {
         delBtn.style.display = (this.activeCitaId && canWrite) ? 'inline-flex' : 'none';
+        delBtn.disabled = false;
       }
 
-      // Ocultar botón de cobro en citas pendientes
+      // Ocultar botón de cobro en citas no atendidas
       if (cobroBtn) {
         cobroBtn.style.display = 'none';
       }
 
       if (submitBtn && canWrite) {
         submitBtn.style.display = 'inline-flex';
+        submitBtn.disabled = false;
         submitBtn.textContent = this.activeCitaId ? '💾 Actualizar Cita' : '💾 Agendar Cita';
       }
     }
@@ -435,11 +460,15 @@ export const citaController = {
     $('#cita-hora-desde').value = horaDesde || '09:00';
     $('#cita-hora-hasta').value = horaHasta || '10:00';
     const estatusSelect = $('#cita-estatus');
-    if (estatusSelect) estatusSelect.value = 'false';
+    if (estatusSelect) estatusSelect.value = 'PENDIENTE';
 
-    await this.applyEstatusState(false);
+    await this.applyEstatusState(false, null, 'PENDIENTE');
 
-    dialog.showModal();
+    if (typeof dialog.showModal === 'function') {
+      if (!dialog.open) dialog.showModal();
+    } else {
+      dialog.setAttribute('open', '');
+    }
   },
 
   /**
@@ -483,11 +512,12 @@ export const citaController = {
       }
 
       this.activeCitaData = cita;
+      const normalizedStatus = normalizeCitaEstatus(cita.estatus);
       const isAlreadyAtendida = isCitaAtendida(cita.estatus);
 
       if (isAlreadyAtendida) {
-        $('#modal-cita-title').textContent = '🔒 Cita Odontológica (Atendida)';
-        $('#modal-cita-subtitle').textContent = 'Registro finalizado — Esta cita no puede ser alterada ni eliminada';
+        $('#modal-cita-title').textContent = '🔒 Cita Odontológica (ATENDIDO)';
+        $('#modal-cita-subtitle').textContent = 'Registro finalizado — Esta cita está en estatus ATENDIDO y no puede ser alterada ni eliminada';
       } else {
         $('#modal-cita-title').textContent = canWrite ? '✏️ Detalle de Cita Odontológica' : '👁️ Consulta de Cita Odontológica';
         $('#modal-cita-subtitle').textContent = canWrite 
@@ -505,7 +535,7 @@ export const citaController = {
       
       const estatusSelect = $('#cita-estatus');
       if (estatusSelect) {
-        estatusSelect.value = isAlreadyAtendida ? 'true' : 'false';
+        estatusSelect.value = normalizedStatus;
       }
 
       // Consultar todos los cobros registrados para esta cita en cobro_cita
@@ -514,9 +544,13 @@ export const citaController = {
       this.currentCobro = this.currentCobros.length > 0 ? this.currentCobros[0] : null;
 
       // Inactivar campos y aplicar bloqueo si la cita está realizada/atendida
-      await this.applyEstatusState(isAlreadyAtendida, this.currentCobros);
+      await this.applyEstatusState(isAlreadyAtendida, this.currentCobros, normalizedStatus);
 
-      dialog.showModal();
+      if (typeof dialog.showModal === 'function') {
+        if (!dialog.open) dialog.showModal();
+      } else {
+        dialog.setAttribute('open', '');
+      }
     } catch (err) {
       console.error('[CitaController] Error cargando cita para edición:', err);
       notificationService.show('Error al abrir la cita: ' + err.message, 'alert');
@@ -560,7 +594,7 @@ export const citaController = {
     if (!dialog) return;
 
     if (!this.activeCitaId) {
-      notificationService.warning('No hay una cita activa para registrar cobro.');
+      notificationService.warning('Primero debe guardar la cita en estatus ATENDIDO para poder registrar o consultar cobros.');
       return;
     }
 
@@ -604,7 +638,11 @@ export const citaController = {
     // 6. Preparar formulario en modo nuevo cobro o incluir otro pago
     await this.startNewCobro();
 
-    dialog.showModal();
+    if (typeof dialog.showModal === 'function') {
+      if (!dialog.open) dialog.showModal();
+    } else {
+      dialog.setAttribute('open', '');
+    }
   },
 
   /**
@@ -1090,9 +1128,9 @@ export const citaController = {
       return;
     }
 
-    // Si la cita ya está en estatus Atendida, no puede ser alterada
-    if (id && ((this.activeCitaData && isCitaAtendida(this.activeCitaData.estatus)) || isCitaAtendida($('#cita-estatus')?.value))) {
-      notificationService.warning('Esta cita ya se encuentra en estatus Atendida y no puede ser alterada.');
+    // Si la cita ya está en estatus ATENDIDO en la base de datos, no puede ser alterada
+    if (id && this.activeCitaData && isCitaAtendida(this.activeCitaData.estatus)) {
+      notificationService.warning('Esta cita ya se encuentra en estatus ATENDIDO y no puede ser alterada.');
       return;
     }
 
@@ -1100,9 +1138,9 @@ export const citaController = {
       // Re-verificar contra base de datos para máxima integridad
       const currentDb = await citaModel.getById(parseInt(id, 10));
       if (currentDb && isCitaAtendida(currentDb.estatus)) {
-        notificationService.warning('Esta cita ya se encuentra en estatus Atendida y no puede ser alterada.');
+        notificationService.warning('Esta cita ya se encuentra en estatus ATENDIDO y no puede ser alterada.');
         this.activeCitaData = currentDb;
-        await this.applyEstatusState(true, this.currentCobros || this.currentCobro);
+        await this.applyEstatusState(true, this.currentCobros || this.currentCobro, 'ATENDIDO');
         return;
       }
     }
@@ -1120,8 +1158,8 @@ export const citaController = {
         || authModel.getCurrentUser()?.consultorio;
       const consultorio_id = activeConsultorio?.id ? Number(activeConsultorio.id) : null;
 
-      const estatusVal = $('#cita-estatus')?.value;
-      const estatus = estatusVal === 'true';
+      const estatusRaw = $('#cita-estatus')?.value;
+      const estatus = normalizeCitaEstatus(estatusRaw);
 
       const payload = {
         paciente_id: parseInt(pacienteId, 10),
@@ -1138,13 +1176,13 @@ export const citaController = {
         await citaModel.update(parseInt(id, 10), payload);
         notificationService.show('✅ Cita actualizada exitosamente.', 'success');
         
-        // Si el usuario marcó la cita como Atendida al actualizar, actualizar estado local
-        if (estatus) {
-          this.activeCitaData = { ...this.activeCitaData, ...payload, estatus: true };
+        // Si el usuario marcó la cita como ATENDIDO al actualizar, actualizar estado local
+        if (isCitaAtendida(estatus)) {
+          this.activeCitaData = { ...this.activeCitaData, ...payload, estatus: 'ATENDIDO' };
           const existingCobros = await cobroModel.getAllByCitaId(id);
           this.currentCobros = existingCobros || [];
           this.currentCobro = this.currentCobros.length > 0 ? this.currentCobros[0] : null;
-          await this.applyEstatusState(true, this.currentCobros);
+          await this.applyEstatusState(true, this.currentCobros, 'ATENDIDO');
         }
       } else {
         const createdCita = await citaModel.create(payload);
@@ -1173,18 +1211,18 @@ export const citaController = {
   async handleDelete() {
     if (!this.activeCitaId) return;
 
-    // Si la cita ya está en estatus Atendida, no puede ser eliminada
+    // Si la cita ya está en estatus ATENDIDO, no puede ser eliminada
     if (this.activeCitaData && isCitaAtendida(this.activeCitaData.estatus)) {
-      notificationService.warning('Una cita con estatus Atendida no puede ser eliminada.');
+      notificationService.warning('Una cita con estatus ATENDIDO no puede ser eliminada.');
       return;
     }
 
     if (this.activeCitaId) {
       const currentDb = await citaModel.getById(this.activeCitaId);
       if (currentDb && isCitaAtendida(currentDb.estatus)) {
-        notificationService.warning('Una cita con estatus Atendida no puede ser eliminada.');
+        notificationService.warning('Una cita con estatus ATENDIDO no puede ser eliminada.');
         this.activeCitaData = currentDb;
-        await this.applyEstatusState(true, this.currentCobro);
+        await this.applyEstatusState(true, this.currentCobro, 'ATENDIDO');
         return;
       }
     }

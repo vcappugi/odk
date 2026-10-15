@@ -5,6 +5,8 @@
  * y genera la leyenda interactiva.
  */
 
+import { isCitaAtendida, normalizeCitaEstatus } from '../cita/citaModel.js';
+
 const DAYS_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const MONTHS_NAMES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -235,11 +237,26 @@ export const calendarView = {
               const hora = c.hora_desde ? c.hora_desde.slice(0, 5) : '';
               const info = getAppointmentDisplayInfo(c, isAuthenticated);
 
-              const statusText = c.estatus ? 'Atendida' : 'Pendiente';
-              const statusCheck = c.estatus ? '<span class="chip-status-check" title="Atendida">✓</span> ' : '';
+              const normStatus = normalizeCitaEstatus(c.estatus);
+              const isAtendida = normStatus === 'ATENDIDO';
+              const isNoAsistio = normStatus === 'NO ASISTIO';
+
+              let statusText = 'Pendiente';
+              let statusClass = 'is-pendiente';
+              let statusCheck = '';
+
+              if (isAtendida) {
+                statusText = 'Atendido';
+                statusClass = 'is-atendida';
+                statusCheck = '<span class="chip-status-check" title="Atendido">✓</span> ';
+              } else if (isNoAsistio) {
+                statusText = 'No Asistió';
+                statusClass = 'is-no-asistio';
+                statusCheck = '<span class="chip-status-missed" title="No Asistió">✗</span> ';
+              }
 
               return `
-                <div class="cal-month-cita-chip ${colorMeta.className} ${info.isMasked ? 'is-masked' : ''} ${c.estatus ? 'is-atendida' : 'is-pendiente'}" 
+                <div class="cal-month-cita-chip ${colorMeta.className} ${info.isMasked ? 'is-masked' : ''} ${statusClass}" 
                      data-cita-id="${c.id}" 
                      title="🩺 ${docFull}&#10;⏰ ${hora}&#10;👤 ${info.paciente}&#10;📌 Estatus: ${statusText}">
                   <span class="chip-dot" style="background-color: var(--doc-border);"></span>
@@ -339,14 +356,22 @@ export const calendarView = {
           const horaHasta = c.hora_hasta ? c.hora_hasta.slice(0, 5) : '';
           const info = getAppointmentDisplayInfo(c, isAuthenticated);
 
-          const statusBadge = c.estatus 
-            ? `<span class="badge-status-pill badge-status-atendida" title="Cita Atendida">🟢 Atendida</span>` 
-            : `<span class="badge-status-pill badge-status-pendiente" title="Cita Pendiente">🟡 Pendiente</span>`;
+          const normStatus = normalizeCitaEstatus(c.estatus);
+          let statusBadge = `<span class="badge-status-pill badge-status-pendiente" title="Cita Pendiente">🟡 Pendiente</span>`;
+          let statusTitle = 'Pendiente';
+
+          if (normStatus === 'ATENDIDO') {
+            statusBadge = `<span class="badge-status-pill badge-status-atendida" title="Cita Atendida (Bloqueada)">🟢 Atendido</span>`;
+            statusTitle = 'Atendido';
+          } else if (normStatus === 'NO ASISTIO') {
+            statusBadge = `<span class="badge-status-pill badge-status-no-asistio" title="Cita No Asistió">🔴 No Asistió</span>`;
+            statusTitle = 'No Asistió';
+          }
 
           return `
             <div class="cal-appointment-card ${colorMeta.className} ${info.isMasked ? 'is-masked' : ''}" 
                  data-cita-id="${c.id}" 
-                 title="🩺 ${docFull} — ${info.paciente} (${c.estatus ? 'Atendida' : 'Pendiente'})">
+                 title="🩺 ${docFull} — ${info.paciente} (${statusTitle})">
               <div class="app-card-header cluster" data-justify="between" data-align="center">
                 <time class="app-time">⏰ ${horaDesde} - ${horaHasta}</time>
                 <div class="cluster" data-gap="2xs" data-align="center">
@@ -445,6 +470,17 @@ export const calendarView = {
               const horaHasta = c.hora_hasta?.slice(0, 5) || '';
               const info = getAppointmentDisplayInfo(c, isAuthenticated);
 
+              const normStatus = normalizeCitaEstatus(c.estatus);
+              const isAtendida = normStatus === 'ATENDIDO';
+              const isNoAsistio = normStatus === 'NO ASISTIO';
+
+              let statusBadge = `<span class="badge-status-pill badge-status-pendiente" title="Estatus: Pendiente">🟡 Pendiente</span>`;
+              if (isAtendida) {
+                statusBadge = `<span class="badge-status-pill badge-status-atendida" title="Estatus: Atendido (Bloqueada)">🟢 Atendido</span>`;
+              } else if (isNoAsistio) {
+                statusBadge = `<span class="badge-status-pill badge-status-no-asistio" title="Estatus: No Asistió">🔴 No Asistió</span>`;
+              }
+
               return `
                 <div class="day-agenda-card box cluster ${colorMeta.className} ${info.isMasked ? 'is-masked' : ''}" 
                      data-surface="raised" 
@@ -452,7 +488,7 @@ export const calendarView = {
                      data-justify="between" 
                      data-align="center"
                      data-cita-id="${c.id}"
-                     title="${info.isMasked ? 'Horario ocupado' : (c.estatus ? 'Cita Atendida (No alterable) — Clic para consultar o cobrar' : 'Clic para modificar o eliminar cita')}">
+                     title="${info.isMasked ? 'Horario ocupado' : (isAtendida ? 'Cita Atendida (Bloqueada) — Clic para consultar o cobrar' : 'Clic para modificar o eliminar cita')}">
                   <div class="stack" data-gap="2xs">
                     <strong class="agenda-patient">🦷 ${info.isMasked ? '🔒 ' : '👤 '}${info.pacienteFull} ${info.pacienteCi}</strong>
                     <span class="agenda-treatment">
@@ -460,16 +496,14 @@ export const calendarView = {
                     </span>
                   </div>
                   <div class="cluster" data-gap="xs" data-align="center">
-                    <span class="badge-status-pill ${c.estatus ? 'badge-status-atendida' : 'badge-status-pendiente'}" title="Estatus: ${c.estatus ? 'Atendida (No alterable)' : 'Pendiente'}">
-                      ${c.estatus ? '🟢 Atendida' : '🟡 Pendiente'}
-                    </span>
+                    ${statusBadge}
                     <span class="badge badge-doctor-pill" style="background-color: var(--doc-border); color: #fff;">
                       🩺 ${docFull}
                     </span>
                     ${info.isMasked ? `
                       <span class="badge" data-paint="neutral" title="Inicie sesión para gestionar">🔒 Reservado</span>
-                    ` : c.estatus ? `
-                      <span class="badge" data-paint="primary" style="cursor: pointer;" title="Cita Atendida — Clic para ver o liquidar cobro">👁️ Atendida / Cobro</span>
+                    ` : isAtendida ? `
+                      <span class="badge" data-paint="primary" style="cursor: pointer;" title="Cita Atendida — Clic para ver o liquidar cobro">👁️ Atendido / Cobro</span>
                     ` : `
                       <span class="badge" data-paint="success" style="cursor: pointer;">✏️ Modificar</span>
                     `}
