@@ -154,7 +154,7 @@ export const bcvScraperService = {
       },
       // 2. Endpoint PHP para Apache XAMPP
       {
-        url: 'api/bcv.php',
+        url: 'php/bcv.php',
         type: 'php'
       },
       // 3. Fallback proxy público allorigins
