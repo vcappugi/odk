@@ -166,8 +166,8 @@ export function renderCitaModal() {
               <button type="button" 
                       id="btn-cita-notificar" 
                       class="button btn-cita-notificar" 
-                      data-variant="outlined" 
-                      data-paint="primary" 
+                      data-variant="solid" 
+                      data-paint="success" 
                       style="font-size: 0.78rem; padding: 0.25rem 0.65rem; height: 30px; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;" 
                       title="Enviar datos de la cita al paciente como Programación o Recordatorio por WhatsApp o Correo">
                 <span>📲</span>

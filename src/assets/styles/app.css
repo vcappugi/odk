@@ -4835,12 +4835,21 @@ html[data-theme="dark"] .cita-notify-preview-card {
 }
 
 .btn-cita-notificar {
-  color: var(--primary, #0284c7) !important;
-  border-color: var(--primary, #0284c7) !important;
+  background-color: #10b981 !important;
+  color: #ffffff !important;
+  border-color: #059669 !important;
+  font-weight: 700 !important;
+}
+
+.btn-cita-notificar span {
+  color: #ffffff !important;
 }
 
 .btn-cita-notificar:hover {
-  background: rgba(2, 132, 199, 0.12) !important;
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  border-color: #047857 !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.45) !important;
 }
 
 
