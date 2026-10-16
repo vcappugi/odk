@@ -162,6 +162,18 @@ export function renderCitaModal() {
               </button>
             </div>
             <div class="cluster" data-gap="xs">
+              <!-- Botón Notificar al Paciente (Programación y Recordatorio) - NUNCA SE INACTIVA -->
+              <button type="button" 
+                      id="btn-cita-notificar" 
+                      class="button btn-cita-notificar" 
+                      data-variant="outlined" 
+                      data-paint="primary" 
+                      style="font-size: 0.78rem; padding: 0.25rem 0.65rem; height: 30px; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;" 
+                      title="Enviar datos de la cita al paciente como Programación o Recordatorio por WhatsApp o Correo">
+                <span>📲</span>
+                <span>Notificar Paciente</span>
+              </button>
+
               <!-- Botón de Cobro (Se activa cuando la cita está Realizada / Atendida) -->
               <button type="button" id="btn-cita-cobro" class="button btn-cobro" data-paint="success" style="display: none; font-weight: 700; align-items: center; gap: 0.35rem; font-size: 0.78rem; padding: 0.25rem 0.7rem; height: 30px;" title="Registrar o consultar el cobro de esta consulta">
                 <span>💳</span>
@@ -185,6 +197,9 @@ export function renderCitaModal() {
 
     <!-- Modal de Recibo de Pago (WhatsApp, Correo, Impresión) -->
     ${renderReciboModal()}
+
+    <!-- Modal de Notificación y Recordatorio de Cita al Paciente -->
+    ${renderCitaNotificationModal()}
   `;
 }
 
@@ -489,6 +504,99 @@ export function renderReciboModal() {
         <footer class="cluster modal-footer" data-justify="end" data-align="center" style="margin-top: 0.25rem; padding-top: 0.3rem; border-top: 1px solid rgba(125, 125, 125, 0.15);">
           <button type="button" class="button btn-close-recibo-modal" data-variant="ghost" style="font-size: 0.78rem; padding: 0.25rem 0.75rem; height: 30px;">
             Cerrar Recibo
+          </button>
+        </footer>
+
+      </div>
+    </dialog>
+  `;
+}
+
+/**
+ * Modal de Notificación y Recordatorio de Citas Odontológicas
+ * Permite enviar los datos de la cita como Programación o Recordatorio por WhatsApp, Correo o Copiado.
+ */
+export function renderCitaNotificationModal() {
+  return `
+    <dialog id="modal-notificar-cita" class="dialog custom-modal modal-notificar-cita-dialog" aria-labelledby="modal-notificar-title">
+      <div class="modal-box box stack" data-surface="raised" data-border data-gap="xs">
+        
+        <!-- Cabecera del Modal -->
+        <header class="modal-header cluster" data-justify="between" data-align="center">
+          <div class="cluster" data-gap="xs" data-align="center">
+            <span class="modal-icon-badge" style="width: 28px; height: 28px; background: rgba(14, 165, 233, 0.18); color: #0284c7; font-size: 1rem;">📲</span>
+            <div>
+              <h3 id="modal-notificar-title" style="margin: 0; font-size: 1.05rem;">Notificar Cita al Paciente</h3>
+              <p id="modal-notificar-subtitle" style="margin: 0; font-size: 0.74rem; opacity: 0.75;">Envíe la confirmación de programación o recordatorio previo</p>
+            </div>
+          </div>
+          <button type="button" class="button btn-close-notify-modal" data-variant="ghost" data-size="sm" aria-label="Cerrar ventana">✕</button>
+        </header>
+
+        <!-- Selector de Modo de Notificación: Programación vs Recordatorio -->
+        <div class="box stack" data-surface="sunken" data-border style="padding: 0.4rem 0.6rem; border-radius: 6px; gap: 0.25rem;">
+          <div class="cluster" data-justify="between" data-align="center">
+            <span style="font-size: 0.72rem; font-weight: 700; color: #0284c7;">Seleccione el Tipo de Mensaje a Enviar:</span>
+            <span style="font-size: 0.68rem; opacity: 0.75;">Alterne para ver el formato</span>
+          </div>
+          <div class="cluster" data-gap="xs" style="width: 100%;">
+            <button type="button" id="btn-type-programacion" class="button btn-notify-type-switch" data-variant="ghost" style="flex: 1; font-size: 0.76rem; font-weight: 700; height: 30px; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;" title="Mensaje formal de cita agendada y programada">
+              <span>📅</span>
+              <span>Programación (Confirmación)</span>
+            </button>
+            <button type="button" id="btn-type-recordatorio" class="button btn-notify-type-switch active" data-variant="primary" data-paint="warning" style="flex: 1; font-size: 0.76rem; font-weight: 700; height: 30px; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;" title="Mensaje de recordatorio preventivo para ratificar asistencia">
+              <span>⏰</span>
+              <span>Recordatorio de Cita</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Contenedor de la Vista Previa del Mensaje -->
+        <div id="cita-notify-preview-container">
+          <!-- Inyectado dinámicamente con renderPreviewCard -->
+        </div>
+
+        <!-- Panel de Canales de Despacho al Paciente -->
+        <div class="box stack receipt-dispatch-box" data-surface="sunken" data-border style="padding: 0.45rem 0.65rem; border-radius: 6px; gap: 0.35rem;">
+          <div class="cluster" data-justify="between" data-align="center">
+            <strong style="font-size: 0.76rem; color: var(--primary, #0284c7);">📤 Canales de Envío al Paciente</strong>
+            <span style="font-size: 0.68rem; opacity: 0.75;">Verifique el número o correo antes de despachar</span>
+          </div>
+
+          <!-- Campos de Teléfono y Correo Electrónico -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <div class="field" style="margin: 0;">
+              <label for="cita-notify-phone" class="label" style="font-size: 0.70rem; margin-bottom: 2px;">💬 Teléfono / WhatsApp del Paciente</label>
+              <input type="tel" id="cita-notify-phone" class="input" style="font-size: 0.80rem; height: 28px; padding: 2px 6px;" placeholder="Ej. 04141234567 o 584141234567" />
+            </div>
+            <div class="field" style="margin: 0;">
+              <label for="cita-notify-email" class="label" style="font-size: 0.70rem; margin-bottom: 2px;">✉️ Correo Electrónico del Paciente</label>
+              <input type="email" id="cita-notify-email" class="input" style="font-size: 0.80rem; height: 28px; padding: 2px 6px;" placeholder="Ej. paciente@gmail.com" />
+            </div>
+          </div>
+
+          <!-- Botones de Acción de Despacho -->
+          <div class="cluster" data-justify="between" data-align="center" style="gap: 0.35rem; margin-top: 0.2rem; flex-wrap: wrap;">
+            <div class="cluster" style="gap: 0.35rem;">
+              <button type="button" id="btn-notify-send-whatsapp" class="button" data-paint="success" style="font-weight: 700; font-size: 0.76rem; padding: 0.25rem 0.75rem; height: 29px; display: inline-flex; align-items: center; gap: 0.35rem;" title="Enviar por WhatsApp">
+                <span>💬 Enviar por WhatsApp</span>
+              </button>
+              <button type="button" id="btn-notify-send-email" class="button" data-paint="primary" style="font-weight: 700; font-size: 0.76rem; padding: 0.25rem 0.75rem; height: 29px; display: inline-flex; align-items: center; gap: 0.35rem;" title="Enviar por Correo Electrónico">
+                <span>✉️ Enviar por Correo</span>
+              </button>
+            </div>
+            <div class="cluster" style="gap: 0.35rem;">
+              <button type="button" id="btn-notify-copy-text" class="button" data-variant="outlined" style="font-weight: 600; font-size: 0.74rem; padding: 0.25rem 0.65rem; height: 29px; display: inline-flex; align-items: center; gap: 0.25rem;" title="Copiar texto formateado al portapapeles">
+                <span>📋 Copiar Mensaje</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pie del Modal -->
+        <footer class="cluster modal-footer" data-justify="end" data-align="center" style="margin-top: 0.25rem; padding-top: 0.3rem; border-top: 1px solid rgba(125, 125, 125, 0.15);">
+          <button type="button" class="button btn-close-notify-modal" data-variant="ghost" style="font-size: 0.78rem; padding: 0.25rem 0.75rem; height: 30px;">
+            Cerrar
           </button>
         </footer>
 

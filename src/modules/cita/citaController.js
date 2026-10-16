@@ -18,6 +18,7 @@ import { historialController } from '../historial/historialController.js';
 import { historialModel } from '../historial/historialModel.js';
 import { odontogramaController } from '../odontograma/odontogramaController.js';
 import { reciboService } from './reciboService.js';
+import { citaNotificationService } from './citaNotificationService.js';
 import { $ } from '../../utils/dom.js';
 
 export const citaController = {
@@ -32,6 +33,7 @@ export const citaController = {
     this.bindEvents();
     this.subscribeToPatientChanges();
     reciboService.initEvents();
+    citaNotificationService.initEvents();
   },
 
   /**
@@ -122,6 +124,14 @@ export const citaController = {
         const rawText = opt?.text || '';
         const pacienteName = rawText.split('(')[0].trim() || `Paciente #${pacienteId}`;
         odontogramaController.openOdontograma(pacienteId, pacienteName, this.activeCitaId);
+      }
+    });
+
+    // 3f. Botón para Notificar Cita al Paciente (Programación y Recordatorio)
+    document.addEventListener('click', async (e) => {
+      if (e.target.closest('#btn-cita-notificar') || e.target.closest('.btn-cita-notificar')) {
+        e.preventDefault();
+        await this.handleNotificarCita();
       }
     });
 
@@ -417,6 +427,15 @@ export const citaController = {
         submitBtn.textContent = this.activeCitaId ? '💾 Actualizar Cita' : '💾 Agendar Cita';
       }
     }
+
+    // EL BOTÓN NOTIFICAR AL PACIENTE NUNCA SE DEBE INACTIVAR AL CAMBIAR DE ESTADO LA CITA
+    const notificarBtn = $('#btn-cita-notificar');
+    if (notificarBtn) {
+      notificarBtn.disabled = false;
+      notificarBtn.style.cursor = 'pointer';
+      notificarBtn.style.opacity = '1';
+      notificarBtn.style.display = 'inline-flex';
+    }
   },
 
   /**
@@ -469,6 +488,15 @@ export const citaController = {
     if (submitBtn) {
       submitBtn.style.display = 'inline-flex';
       submitBtn.textContent = '💾 Agendar Cita';
+    }
+
+    // Asegurar que el botón de notificar esté activo
+    const notificarBtn = $('#btn-cita-notificar');
+    if (notificarBtn) {
+      notificarBtn.disabled = false;
+      notificarBtn.style.cursor = 'pointer';
+      notificarBtn.style.opacity = '1';
+      notificarBtn.style.display = 'inline-flex';
     }
 
     // Cargar listas desplegables
@@ -939,6 +967,93 @@ export const citaController = {
       doctor: cita?.doctor,
       consultorio,
       historia
+    });
+  },
+
+  /**
+   * Abre el modal de notificación para enviar los datos de la cita al paciente
+   * como Programación o Recordatorio (WhatsApp, Correo, Copiado)
+   */
+  async handleNotificarCita() {
+    const pacienteSelect = $('#cita-paciente');
+    const pacienteId = pacienteSelect?.value;
+
+    if (!pacienteId) {
+      notificationService.warning('Por favor seleccione un paciente para poder enviar la notificación de la cita.');
+      pacienteSelect?.focus();
+      return;
+    }
+
+    const fecha = $('#cita-fecha')?.value;
+    if (!fecha) {
+      notificationService.warning('Por favor especifique la fecha de la cita.');
+      $('#cita-fecha')?.focus();
+      return;
+    }
+
+    const horaDesde = $('#cita-hora-desde')?.value || '09:00';
+    const horaHasta = $('#cita-hora-hasta')?.value || '10:00';
+    const doctorId = $('#cita-doctor')?.value;
+    const observacion = $('#cita-observacion')?.value || '';
+    const estatus = $('#cita-estatus')?.value || 'PENDIENTE';
+
+    // Obtener datos completos del paciente
+    let paciente = null;
+    if (this.activeCitaData?.paciente && String(this.activeCitaData.paciente.id) === String(pacienteId)) {
+      paciente = this.activeCitaData.paciente;
+    } else {
+      try {
+        paciente = await patientModel.getById(pacienteId);
+      } catch (err) {
+        console.warn('[CitaController] Error obteniendo paciente para notificación:', err);
+      }
+    }
+
+    // Fallback nombre paciente del select si fuera necesario
+    if (!paciente) {
+      const opt = pacienteSelect.options[pacienteSelect.selectedIndex];
+      const rawText = opt?.text || 'Paciente';
+      paciente = {
+        id: pacienteId,
+        nombre: rawText.split('(')[0].trim(),
+        telefono: '',
+        mail: ''
+      };
+    }
+
+    // Obtener doctor
+    let doctor = null;
+    if (this.activeCitaData?.doctor && String(this.activeCitaData.doctor.id) === String(doctorId)) {
+      doctor = this.activeCitaData.doctor;
+    } else {
+      const docSelect = $('#cita-doctor');
+      const docText = docSelect?.options[docSelect.selectedIndex]?.text || 'Especialista Odontológico';
+      doctor = { id: doctorId, nombre: docText };
+    }
+
+    const cita = {
+      id: this.activeCitaId,
+      fecha,
+      hora_desde: horaDesde,
+      hora_hasta: horaHasta,
+      observacion,
+      estatus
+    };
+
+    const consultorio = consultorioModel.getActiveConsultorio()
+      || authModel.getActiveConsultorio()
+      || authModel.getCurrentUser()?.consultorio;
+
+    // Si la cita aún no ha sido guardada (id null), por defecto sugerir Programación
+    // Si ya existe (id presente), sugerir Recordatorio
+    const defaultType = this.activeCitaId ? 'recordatorio' : 'programacion';
+
+    await citaNotificationService.openNotificationModal({
+      cita,
+      paciente,
+      doctor,
+      consultorio,
+      defaultType
     });
   },
 

@@ -4791,6 +4791,59 @@ html[data-theme="dark"] .receipt-preview-card {
   background: rgba(2, 132, 199, 0.12) !important;
 }
 
+/* ==========================================================================
+   MODAL DE NOTIFICACIÓN Y RECORDATORIO DE CITA (CITA NOTIFICATION SERVICE)
+   ========================================================================== */
+.modal-notificar-cita-dialog {
+  max-width: 620px !important;
+  width: min(620px, 95vw) !important;
+  max-height: 94vh !important;
+  border-radius: 0.85rem !important;
+  overflow: hidden !important;
+  z-index: 10001 !important;
+}
+
+.modal-notificar-cita-dialog .modal-box {
+  padding: 0.85rem 1.15rem !important;
+  max-height: 94vh !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+  gap: 0.45rem !important;
+}
+
+.cita-notify-preview-card {
+  background: var(--surface-raised, #ffffff);
+  border: 1px dashed rgba(125, 125, 125, 0.35);
+  border-radius: 8px;
+  padding: 0.75rem 0.95rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  font-family: inherit;
+}
+
+html[data-theme="dark"] .cita-notify-preview-card {
+  background: rgba(30, 41, 59, 0.7);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.btn-notify-type-switch {
+  transition: all 0.15s ease;
+}
+
+.btn-notify-type-switch.active {
+  box-shadow: 0 2px 6px rgba(14, 165, 233, 0.35);
+}
+
+.btn-cita-notificar {
+  color: var(--primary, #0284c7) !important;
+  border-color: var(--primary, #0284c7) !important;
+}
+
+.btn-cita-notificar:hover {
+  background: rgba(2, 132, 199, 0.12) !important;
+}
+
+
 
 
 
